@@ -28,29 +28,49 @@ ParseError :: enum {
 	NoPreviewImage,
 }
 
+read_u16 :: proc(data: ^[]u8, pos: u32) -> (res: u16, success: bool) {
+	if int(pos)+1 >= len(data) {
+		return 0, false
+	}
+
+	#no_bounds_check { // Just for fun
+		return u16(data[pos]) | u16(data[pos+1]) << 8, true
+	}
+}
+
+read_u32 :: proc(data: ^[]u8, pos: u32) -> (res: u32, success: bool){
+	if int(pos)+3 >= len(data) {
+		return 0, false
+	}
+
+	#no_bounds_check { // Just for fun
+		return u32(data[pos]) | u32(data[pos+1]) << 8 | u32(data[pos+2]) << 16 | u32(data[pos+3]) << 24, true
+	}
+}
+
 get_jpeg_image_preview_from_arw_data :: proc(data: ^[]u8) -> (previewImageStart, previewImageLength: u32, err: ParseError) {
+	previewImageStart = 0
+	previewImageLength = 0
+	err = .TooSmallData
+
 	if len(data) < 8 {
-		return 0, 0, .TooSmallData
+		return
 	}
 
 	if mem.compare(data[:4], {'I', 'I', 0x2a, 0x00}) != 0 {
 		return 0, 0, .MissingHeader
 	}
 
-	// The data length passed to read_u32 is constant and won't error.
-	firstIFDOffset, _ := i18n.read_u32(data[4:8])
+	firstIFDOffset, firstIFDOffsetSuccess := read_u32(data, 4)
+	if !firstIFDOffsetSuccess do return
 
 	if firstIFDOffset == 0 || firstIFDOffset % 2 != 0 {
 		return 0, 0, .InvalidIFDOffset
 	}
 
-	if len(data) < int(firstIFDOffset+2) {
-		return 0, 0, .TooSmallData
-	}
-	// The data length passed to read_u16 is constant and won't error.
-	numDirEntries, _ := i18n.read_u16(data[firstIFDOffset:firstIFDOffset+2])
+	numDirEntries, numDirEntriesSuccess := read_u16(data, firstIFDOffset)
+	if !numDirEntriesSuccess do return
 
-	// TODO: Do we need to free this?
 	typeToByteCount := make(map[u16]u32)
 	defer delete(typeToByteCount)
 	typeToByteCount[1] = 1
@@ -60,12 +80,19 @@ get_jpeg_image_preview_from_arw_data :: proc(data: ^[]u8) -> (previewImageStart,
 	typeToByteCount[5] = 8
 
 	for i: u16 = 0; i < numDirEntries; i += 1 {
-		// FIXME: Our own read_uint16 and read_uint32 functions, and handle possible length errors here!
 		offset := firstIFDOffset + 2 + u32(i*12)
-		tag, _ := i18n.read_u16(data[offset:offset+2])
-		type, _ := i18n.read_u16(data[offset+2:offset+2+2])
-		numValues, _ := i18n.read_u32(data[offset+4:offset+4+4])
-		valueOffset, _ := i18n.read_u32(data[offset+8:offset+8+4])
+
+		tag, tagSuccess := read_u16(data, offset)
+		if !tagSuccess do return
+
+		type, typeSuccess := read_u16(data, offset+2)
+		if !typeSuccess do return
+
+		numValues, numValuesSuccess := read_u32(data, offset+4)
+		if !numValuesSuccess do return
+
+		valueOffset, valueOffsetSuccess := read_u32(data, offset+8)
+		if !valueOffsetSuccess do return
 
 		valueSize := typeToByteCount[type] * numValues
 
