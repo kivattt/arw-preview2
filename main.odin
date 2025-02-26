@@ -71,14 +71,6 @@ get_jpeg_image_preview_from_arw_data :: proc(data: ^[]u8) -> (previewImageStart,
 	numDirEntries, numDirEntriesSuccess := read_u16(data, firstIFDOffset)
 	if !numDirEntriesSuccess do return
 
-	typeToByteCount := make(map[u16]u32)
-	defer delete(typeToByteCount)
-	typeToByteCount[1] = 1
-	typeToByteCount[2] = 2
-	typeToByteCount[3] = 2
-	typeToByteCount[4] = 4
-	typeToByteCount[5] = 8
-
 	for i: u16 = 0; i < numDirEntries; i += 1 {
 		offset := firstIFDOffset + 2 + u32(i*12)
 
@@ -88,16 +80,10 @@ get_jpeg_image_preview_from_arw_data :: proc(data: ^[]u8) -> (previewImageStart,
 		type, typeSuccess := read_u16(data, offset+2)
 		if !typeSuccess do return
 
-		numValues, numValuesSuccess := read_u32(data, offset+4)
-		if !numValuesSuccess do return
-
 		valueOffset, valueOffsetSuccess := read_u32(data, offset+8)
 		if !valueOffsetSuccess do return
 
-		valueSize := typeToByteCount[type] * numValues
-
-		// The value offset instead contains the data when the value size is <= 4
-		valueOffsetIsValue := valueSize <= 4
+		valueOffsetIsValue := type != 5
 
 		if valueOffsetIsValue {
 			if tag == 0x0201 {
