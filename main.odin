@@ -216,22 +216,23 @@ main :: proc() {
 			scaleFactor := 1.0 + (0.25 * abs(wheel))
 			if wheel < 0 do scaleFactor = 1.0 / scaleFactor
 			camera.zoom *= scaleFactor
-		}
 
-		if camera.zoom > 10_000 {
-			camera.zoom = 10_000
+			if camera.zoom > 10_000 {
+				camera.zoom = 10_000
+			}
 		}
 
 		rl.BeginMode2D(camera)
 		rl.ClearBackground({53,53,53,255})
 		rl.DrawTexture(texture, 0, 0, rl.WHITE)
 
-		if camera.zoom > 12 {
+		if camera.zoom > 13 {
 			rlgl.PushMatrix()
 			rlgl.Translatef(0, f32(texture.height), 0)
 			rlgl.Rotatef(90, 1, 0, 0)
 
-			draw_grid(texture.width, texture.height)
+			draw_grid(texture.width, texture.height, {255,255,255,40})
+
 			rlgl.PopMatrix()
 		}
 		rl.EndMode2D()

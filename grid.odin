@@ -3,9 +3,9 @@ package main
 import rl "vendor:raylib"
 import rlgl "vendor:raylib/rlgl"
 
-draw_grid :: proc(width, height: i32) {
+draw_grid :: proc(width, height: i32, color: rl.Color) {
 	rlgl.Begin(rlgl.LINES)
-	rlgl.Color3f(0.5, 0.5, 0.5)
+	rlgl.Color4f(f32(color[0]) / 255, f32(color[1]) / 255, f32(color[2]) / 255, f32(color[3]) / 255)
 
 	for i: i32 = 0; i <= width; i += 1 {
 		rlgl.Vertex3f(f32(i), 0, 0)
