@@ -194,9 +194,6 @@ main :: proc() {
 	fpsTextEnabled := false
 	defer strings.builder_destroy(&fpsTextStringBuilder)
 
-	lastScreenWidth := rl.GetScreenWidth()
-	lastScreenHeight := rl.GetScreenHeight()
-
 	for !rl.WindowShouldClose() {
 		// raylib doesn't respect my keybinds, so force it to also close on caps lock
 		if rl.IsKeyDown(.Q) || rl.IsKeyDown(.CAPS_LOCK) {
@@ -224,16 +221,7 @@ main :: proc() {
 		}
 
 		if rl.IsWindowResized() {
-			width := rl.GetScreenWidth()
-			height := rl.GetScreenHeight()
-
-			widthDiff := width - lastScreenWidth
-			heightDiff := height - lastScreenHeight
-			camera.target[0] -= f32(widthDiff) / 2
-			camera.target[1] -= f32(heightDiff) / 2
-
-			lastScreenWidth = width
-			lastScreenHeight = height
+			camera.offset = {f32(rl.GetScreenWidth())/2, f32(rl.GetScreenHeight())/2}
 		}
 
 		rl.BeginDrawing()
