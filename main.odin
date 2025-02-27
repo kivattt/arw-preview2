@@ -16,6 +16,7 @@ VERSION :: "version 1"
 FONT_DATA :: #load("fonts/Inter/Inter-Regular.ttf")
 FONT_SIZE :: 24
 MOVEMENT_SPEED :: 50
+ZOOM_SPEED :: 0.25
 KEY_REPEAT_MILLIS :: 50
 
 usage :: proc(programName: string) {
@@ -218,7 +219,7 @@ main :: proc() {
 			mouseWorldPos := rl.GetScreenToWorld2D(rl.GetMousePosition(), camera)
 			camera.offset = rl.GetMousePosition()
 			camera.target = mouseWorldPos
-			scaleFactor := 1.0 + (0.25 * abs(wheel))
+			scaleFactor := 1.0 + (ZOOM_SPEED * abs(wheel))
 			if wheel < 0 do scaleFactor = 1.0 / scaleFactor
 			camera.zoom *= scaleFactor
 		}
@@ -252,18 +253,26 @@ main :: proc() {
 		if allowKeyRepeat {
 			keyPressRepeatTime = time.now()
 
+			left, right, up, down := false, false, false, false
+			left  |= rl.IsKeyDown(.A)
+			right |= rl.IsKeyDown(.D)
+			up    |= rl.IsKeyDown(.W)
+			down  |= rl.IsKeyDown(.S)
+
 			isCtrlDown := rl.IsKeyDown(.LEFT_CONTROL) || rl.IsKeyDown(.RIGHT_CONTROL)
-			isWASD := rl.IsKeyDown(.W) || rl.IsKeyDown(.A) || rl.IsKeyDown(.S) || rl.IsKeyDown(.D)
-			charPressed := rl.GetCharPressed()
-			if isCtrlDown || isWASD {
-				if rl.IsKeyDown(.LEFT) || rl.IsKeyDown(.A) do camera.target -= {MOVEMENT_SPEED / camera.zoom, 0}
-				if rl.IsKeyDown(.RIGHT) || rl.IsKeyDown(.D) do camera.target += {MOVEMENT_SPEED / camera.zoom, 0}
-				if rl.IsKeyDown(.UP) || rl.IsKeyDown(.W) do camera.target -= {0, MOVEMENT_SPEED / camera.zoom}
-				if rl.IsKeyDown(.DOWN) || rl.IsKeyDown(.S) do camera.target += {0, MOVEMENT_SPEED / camera.zoom}
+			if isCtrlDown {
+				left  |= rl.IsKeyDown(.LEFT)
+				right |= rl.IsKeyDown(.RIGHT)
+				up    |= rl.IsKeyDown(.UP)
+				down  |= rl.IsKeyDown(.DOWN)
 			} else {
-				if rl.IsKeyDown(.UP) || charPressed == '+' do camera.zoom *= 1.25
-				else if rl.IsKeyDown(.DOWN) || charPressed == '-' do camera.zoom *= 1.0 / 1.25
+				charPressed := rl.GetCharPressed()
+				if rl.IsKeyDown(.UP) || charPressed == '+' do camera.zoom *= 1+ZOOM_SPEED
+				else if rl.IsKeyDown(.DOWN) || charPressed == '-' do camera.zoom *= 1.0 / (1+ZOOM_SPEED)
 			}
+
+			movementVector := [2]f32{f32(int(right)) - f32(int(left)), f32(int(down)) - f32(int(up))}
+			camera.target += movementVector * (MOVEMENT_SPEED / camera.zoom)
 		}
 
 		if rl.IsKeyPressed(.LEFT_SHIFT) || rl.IsKeyPressed(.RIGHT_SHIFT) {
