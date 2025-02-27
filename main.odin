@@ -4,6 +4,7 @@ import "core:fmt"
 import "core:text/i18n"
 import "core:mem"
 import "core:os"
+import "core:strconv"
 import "core:strings"
 import rl "vendor:raylib"
 import rlgl "vendor:raylib/rlgl"
@@ -11,6 +12,9 @@ import rlgl "vendor:raylib/rlgl"
 WIDTH :: 1280
 HEIGHT :: 720
 VERSION :: "version 1"
+
+FONT_DATA :: #load("fonts/Inter/Inter-Regular.ttf")
+FONT_SIZE :: 24
 
 usage :: proc(programName: string) {
 	fmt.println("Usage:", programName, "[OPTIONS] [.ARW file]")
@@ -124,13 +128,13 @@ main :: proc() {
 		}
 	}
 
-	if filename == "" {
-		usage(os.args[0])
+	if hasVersionFlag {
+		fmt.println("arw-preview2", VERSION)
 		os.exit(0)
 	}
 
-	if hasVersionFlag {
-		fmt.println("arw-preview2", VERSION)
+	if filename == "" {
+		usage(os.args[0])
 		os.exit(0)
 	}
 
@@ -182,8 +186,12 @@ main :: proc() {
 	texture := rl.LoadTextureFromImage(image)
 	rl.SetTargetFPS(rl.GetMonitorRefreshRate(rl.GetCurrentMonitor()))
 
+	theFont := rl.LoadFontFromMemory(".ttf", raw_data(FONT_DATA), i32(len(FONT_DATA)), FONT_SIZE, nil, 0)
+
 	camera: rl.Camera2D
 	camera.zoom = 1.0
+	fpsTextStringBuilder := strings.builder_make()
+	defer strings.builder_destroy(&fpsTextStringBuilder)
 
 	for !rl.WindowShouldClose() {
 		// raylib doesn't respect my keybinds, so force it to also close on caps lock
@@ -225,7 +233,12 @@ main :: proc() {
 
 
 		if rl.IsKeyDown(.LEFT_SHIFT) || rl.IsKeyDown(.RIGHT_SHIFT) || rl.IsKeyDown(.LEFT_CONTROL) || rl.IsKeyDown(.RIGHT_CONTROL) {
-			rl.DrawFPS(0,0)
+			buf: [16]byte
+			fpsText := strconv.itoa(buf[:], int(rl.GetFPS()))
+			strings.write_string(&fpsTextStringBuilder, fpsText)
+			strings.write_string(&fpsTextStringBuilder, " fps")
+			rl.DrawTextEx(theFont, strings.to_cstring(&fpsTextStringBuilder), {5, 5}, FONT_SIZE, 0, {0,255,0,255})
+			strings.builder_reset(&fpsTextStringBuilder)
 		}
 
 		rl.EndDrawing()
