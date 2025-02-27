@@ -107,6 +107,10 @@ get_jpeg_image_preview_from_arw_data :: proc(data: ^[]u8) -> (previewImageStart,
 	return 0, 0, .NoPreviewImage
 }
 
+is_key_pressed :: proc(key: rl.KeyboardKey) -> bool {
+	return rl.IsKeyPressed(key) || rl.IsKeyPressedRepeat(key)
+}
+
 main :: proc() {
 	if len(os.args) < 2 {
 		usage(os.args[0])
@@ -225,7 +229,7 @@ main :: proc() {
 
 
 		// Fit the image size to the screen
-		if firstResize || rl.IsGestureDetected(.DOUBLETAP) {
+		if firstResize || rl.IsGestureDetected(.DOUBLETAP) || rl.IsKeyPressed(.ENTER) {
 			screenWidth := f32(rl.GetScreenWidth())
 			screenHeight := f32(rl.GetScreenHeight())
 
@@ -237,6 +241,14 @@ main :: proc() {
 			camera.target = {textureWidth / 2, textureHeight / 2}
 			firstResize = false
 		}
+
+		charPressed := rl.GetCharPressed()
+		if is_key_pressed(.UP) || charPressed == '+' {
+			camera.zoom *= 1.25
+		} else if is_key_pressed(.DOWN) || charPressed == '-' {
+			camera.zoom *= 1.0 / 1.25
+		}
+
 
 		camera.zoom = min(10_000, camera.zoom)
 		camera.zoom = max(0.01, camera.zoom)
