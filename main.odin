@@ -218,6 +218,10 @@ main :: proc() {
 			camera.zoom *= scaleFactor
 		}
 
+		if camera.zoom > 10_000 {
+			camera.zoom = 10_000
+		}
+
 		rl.BeginMode2D(camera)
 		rl.ClearBackground({53,53,53,255})
 		rl.DrawTexture(texture, 0, 0, rl.WHITE)
