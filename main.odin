@@ -212,7 +212,7 @@ main :: proc() {
 			rlgl.Translatef(0, f32(texture.height), 0)
 			rlgl.Rotatef(90, 1, 0, 0)
 
-			draw_grid(width=texture.width, height=texture.height)
+			draw_grid(texture.width, texture.height)
 			rlgl.PopMatrix()
 		}
 		rl.EndMode2D()
