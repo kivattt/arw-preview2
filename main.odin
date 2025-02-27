@@ -110,10 +110,6 @@ get_jpeg_image_preview_from_arw_data :: proc(data: ^[]u8) -> (previewImageStart,
 	return 0, 0, .NoPreviewImage
 }
 
-is_key_pressed :: proc(key: rl.KeyboardKey) -> bool {
-	return rl.IsKeyPressed(key) || rl.IsKeyPressedRepeat(key)
-}
-
 main :: proc() {
 	if len(os.args) < 2 {
 		usage(os.args[0])
