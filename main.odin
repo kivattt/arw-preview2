@@ -193,6 +193,12 @@ main :: proc() {
 
 		rl.BeginDrawing()
 
+		if rl.IsMouseButtonDown(.LEFT) {
+			delta := rl.GetMouseDelta()
+			delta = delta * (-1.0 / camera.zoom)
+			camera.target = camera.target + delta
+		}
+
 		wheel := rl.GetMouseWheelMove()
 		if wheel != 0 {
 			mouseWorldPos := rl.GetScreenToWorld2D(rl.GetMousePosition(), camera)
@@ -200,7 +206,7 @@ main :: proc() {
 			camera.target = mouseWorldPos
 			scaleFactor := 1.0 + (0.25 * abs(wheel))
 			if wheel < 0 do scaleFactor = 1.0 / scaleFactor
-			camera.zoom = rl.Clamp(camera.zoom * scaleFactor, 0.125, 64.0)
+			camera.zoom = camera.zoom * scaleFactor
 		}
 
 		rl.BeginMode2D(camera)
