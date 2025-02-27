@@ -191,6 +191,7 @@ main :: proc() {
 	camera: rl.Camera2D
 	camera.zoom = 1.0
 	fpsTextStringBuilder := strings.builder_make()
+	fpsTextEnabled := false
 	defer strings.builder_destroy(&fpsTextStringBuilder)
 
 	for !rl.WindowShouldClose() {
@@ -231,8 +232,11 @@ main :: proc() {
 		}
 		rl.EndMode2D()
 
+		if rl.IsKeyPressed(.LEFT_SHIFT) || rl.IsKeyPressed(.RIGHT_SHIFT) || rl.IsKeyPressed(.LEFT_CONTROL) || rl.IsKeyPressed(.RIGHT_CONTROL) {
+			fpsTextEnabled = !fpsTextEnabled
+		}
 
-		if rl.IsKeyDown(.LEFT_SHIFT) || rl.IsKeyDown(.RIGHT_SHIFT) || rl.IsKeyDown(.LEFT_CONTROL) || rl.IsKeyDown(.RIGHT_CONTROL) {
+		if fpsTextEnabled {
 			buf: [16]byte
 			fpsText := strconv.itoa(buf[:], int(rl.GetFPS()))
 			strings.write_string(&fpsTextStringBuilder, fpsText)
