@@ -194,13 +194,15 @@ main :: proc() {
 	fpsTextEnabled := false
 	defer strings.builder_destroy(&fpsTextStringBuilder)
 
+	firstResize := false
+
 	for !rl.WindowShouldClose() {
 		// raylib doesn't respect my keybinds, so force it to also close on caps lock
 		if rl.IsKeyDown(.Q) || rl.IsKeyDown(.CAPS_LOCK) {
 			break
 		}
 
-		if rl.IsMouseButtonDown(.LEFT) {
+		if rl.IsMouseButtonDown(.LEFT) || rl.IsMouseButtonDown(.RIGHT) || rl.IsMouseButtonDown(.MIDDLE) {
 			delta := rl.GetMouseDelta()
 			delta = delta * (-1.0 / camera.zoom)
 			camera.target = camera.target + delta
@@ -222,6 +224,21 @@ main :: proc() {
 
 		if rl.IsWindowResized() {
 			camera.offset = {f32(rl.GetScreenWidth())/2, f32(rl.GetScreenHeight())/2}
+			firstResize = true
+		}
+
+		// Fit the image size to the screen
+		if firstResize || rl.IsGestureDetected(.DOUBLETAP) {
+			screenWidth := f32(rl.GetScreenWidth())
+			screenHeight := f32(rl.GetScreenHeight())
+
+			textureWidth := f32(texture.width)
+			textureHeight := f32(texture.height)
+
+			camera.zoom = min(screenWidth / textureWidth, screenHeight / textureHeight)
+			camera.offset = {screenWidth / 2, screenHeight / 2}
+			camera.target = {textureWidth / 2, textureHeight / 2}
+			firstResize = false
 		}
 
 		rl.BeginDrawing()
