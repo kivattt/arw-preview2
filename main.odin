@@ -1,9 +1,10 @@
 package main
 
 import "core:fmt"
-import "core:text/i18n"
 import "core:mem"
+import "core:time"
 import "core:os"
+import "core:text/i18n"
 import "core:strconv"
 import "core:strings"
 import rl "vendor:raylib"
@@ -15,6 +16,8 @@ VERSION :: "version 1"
 
 FONT_DATA :: #load("fonts/Inter/Inter-Regular.ttf")
 FONT_SIZE :: 24
+MOVEMENT_SPEED :: 40
+KEY_REPEAT_MILLIS :: 50
 
 usage :: proc(programName: string) {
 	fmt.println("Usage:", programName, "[OPTIONS] [.ARW file]")
@@ -107,10 +110,6 @@ get_jpeg_image_preview_from_arw_data :: proc(data: ^[]u8) -> (previewImageStart,
 	return 0, 0, .NoPreviewImage
 }
 
-is_key_pressed :: proc(key: rl.KeyboardKey) -> bool {
-	return rl.IsKeyPressed(key) || rl.IsKeyPressedRepeat(key)
-}
-
 main :: proc() {
 	if len(os.args) < 2 {
 		usage(os.args[0])
@@ -200,6 +199,8 @@ main :: proc() {
 
 	firstResize := false
 
+	keyPressRepeatTime := time.now()
+
 	for !rl.WindowShouldClose() {
 		// raylib doesn't respect my keybinds, so force it to also close on caps lock
 		if rl.IsKeyDown(.Q) || rl.IsKeyDown(.CAPS_LOCK) {
@@ -209,7 +210,7 @@ main :: proc() {
 		if rl.IsMouseButtonDown(.LEFT) || rl.IsMouseButtonDown(.RIGHT) || rl.IsMouseButtonDown(.MIDDLE) {
 			delta := rl.GetMouseDelta()
 			delta = delta * (-1.0 / camera.zoom)
-			camera.target = camera.target + delta
+			camera.target += delta
 		}
 
 		wheel := rl.GetMouseWheelMove()
@@ -227,6 +228,10 @@ main :: proc() {
 			firstResize = true
 		}
 
+		allowKeyRepeat := time.since(keyPressRepeatTime) > KEY_REPEAT_MILLIS * time.Millisecond
+		if allowKeyRepeat {
+			keyPressRepeatTime = time.now()
+		}
 
 		// Fit the image size to the screen
 		if firstResize || rl.IsGestureDetected(.DOUBLETAP) || rl.IsKeyPressed(.ENTER) {
@@ -242,11 +247,30 @@ main :: proc() {
 			firstResize = false
 		}
 
-		charPressed := rl.GetCharPressed()
-		if is_key_pressed(.UP) || charPressed == '+' {
-			camera.zoom *= 1.25
-		} else if is_key_pressed(.DOWN) || charPressed == '-' {
-			camera.zoom *= 1.0 / 1.25
+		if allowKeyRepeat {
+			isCtrlDown := rl.IsKeyDown(.LEFT_CONTROL) || rl.IsKeyDown(.RIGHT_CONTROL)
+			isWASD := rl.IsKeyDown(.W) || rl.IsKeyDown(.A) || rl.IsKeyDown(.S) || rl.IsKeyDown(.D)
+			charPressed := rl.GetCharPressed()
+			if isCtrlDown || isWASD {
+				if rl.IsKeyDown(.LEFT) || rl.IsKeyDown(.A) {
+					camera.target -= {MOVEMENT_SPEED / camera.zoom, 0}
+				}
+				if rl.IsKeyDown(.RIGHT) || rl.IsKeyDown(.D) {
+					camera.target += {MOVEMENT_SPEED / camera.zoom, 0}
+				}
+				if rl.IsKeyDown(.UP) || rl.IsKeyDown(.W) {
+					camera.target -= {0, MOVEMENT_SPEED / camera.zoom}
+				}
+				if rl.IsKeyDown(.DOWN) || rl.IsKeyDown(.S) {
+					camera.target += {0, MOVEMENT_SPEED / camera.zoom}
+				}
+			} else {
+				if rl.IsKeyDown(.UP) || charPressed == '+' {
+					camera.zoom *= 1.25
+				} else if rl.IsKeyDown(.DOWN) || charPressed == '-' {
+					camera.zoom *= 1.0 / 1.25
+				}
+			}
 		}
 
 
