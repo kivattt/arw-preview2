@@ -227,10 +227,6 @@ main :: proc() {
 			firstResize = true
 		}
 
-		allowKeyRepeat := time.since(keyPressRepeatTime) > KEY_REPEAT_MILLIS * time.Millisecond
-		if allowKeyRepeat {
-			keyPressRepeatTime = time.now()
-		}
 
 		// Fit the image size to the screen
 		if firstResize || rl.IsGestureDetected(.DOUBLETAP) || rl.IsKeyPressed(.ENTER) || rl.IsKeyPressed(.SPACE) {
@@ -246,7 +242,10 @@ main :: proc() {
 			firstResize = false
 		}
 
+		allowKeyRepeat := time.since(keyPressRepeatTime) > KEY_REPEAT_MILLIS * time.Millisecond
 		if allowKeyRepeat {
+			keyPressRepeatTime = time.now()
+
 			isCtrlDown := rl.IsKeyDown(.LEFT_CONTROL) || rl.IsKeyDown(.RIGHT_CONTROL)
 			isWASD := rl.IsKeyDown(.W) || rl.IsKeyDown(.A) || rl.IsKeyDown(.S) || rl.IsKeyDown(.D)
 			charPressed := rl.GetCharPressed()
