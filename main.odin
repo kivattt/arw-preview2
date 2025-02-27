@@ -207,12 +207,14 @@ main :: proc() {
 		rl.ClearBackground({53,53,53,255})
 		rl.DrawTexture(texture, 0, 0, rl.WHITE)
 
-		rlgl.PushMatrix()
-			//rlgl.Translatef(0, 0, 0)
+		if camera.zoom > 12 {
+			rlgl.PushMatrix()
+			rlgl.Translatef(0, f32(texture.height), 0)
 			rlgl.Rotatef(90, 1, 0, 0)
 
-			draw_grid(x=0, y=0, width=1000, height=700)
-		rlgl.PopMatrix()
+			draw_grid(width=texture.width, height=texture.height)
+			rlgl.PopMatrix()
+		}
 		rl.EndMode2D()
 
 
