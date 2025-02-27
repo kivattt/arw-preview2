@@ -233,7 +233,7 @@ main :: proc() {
 		}
 
 		// Fit the image size to the screen
-		if firstResize || rl.IsGestureDetected(.DOUBLETAP) || rl.IsKeyPressed(.ENTER) {
+		if firstResize || rl.IsGestureDetected(.DOUBLETAP) || rl.IsKeyPressed(.ENTER) || rl.IsKeyPressed(.SPACE) {
 			screenWidth := f32(rl.GetScreenWidth())
 			screenHeight := f32(rl.GetScreenHeight())
 
