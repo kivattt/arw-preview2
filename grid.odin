@@ -4,6 +4,9 @@ import rl "vendor:raylib"
 import rlgl "vendor:raylib/rlgl"
 
 draw_grid :: proc(width, height: i32, color: rl.Color) {
+	rlgl.PushMatrix()
+	rlgl.Translatef(0, f32(height), 0)
+	rlgl.Rotatef(90, 1, 0, 0)
 	rlgl.Begin(rlgl.LINES)
 	rlgl.Color4f(f32(color[0]) / 255, f32(color[1]) / 255, f32(color[2]) / 255, f32(color[3]) / 255)
 
@@ -17,4 +20,5 @@ draw_grid :: proc(width, height: i32, color: rl.Color) {
 		rlgl.Vertex3f(f32(width), 0, f32(i))
 	}
 	rlgl.End()
+	rlgl.PopMatrix()
 }

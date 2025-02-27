@@ -8,7 +8,6 @@ import "core:text/i18n"
 import "core:strconv"
 import "core:strings"
 import rl "vendor:raylib"
-import rlgl "vendor:raylib/rlgl"
 
 WIDTH :: 1280
 HEIGHT :: 720
@@ -16,7 +15,7 @@ VERSION :: "version 1"
 
 FONT_DATA :: #load("fonts/Inter/Inter-Regular.ttf")
 FONT_SIZE :: 24
-MOVEMENT_SPEED :: 40
+MOVEMENT_SPEED :: 50
 KEY_REPEAT_MILLIS :: 50
 
 usage :: proc(programName: string) {
@@ -283,13 +282,7 @@ main :: proc() {
 		rl.DrawTexture(texture, 0, 0, rl.WHITE)
 
 		if camera.zoom > 13 {
-			rlgl.PushMatrix()
-			rlgl.Translatef(0, f32(texture.height), 0)
-			rlgl.Rotatef(90, 1, 0, 0)
-
 			draw_grid(texture.width, texture.height, {255,255,255,40})
-
-			rlgl.PopMatrix()
 		}
 		rl.EndMode2D()
 
