@@ -6,6 +6,7 @@ import "core:mem"
 import "core:os"
 import "core:strings"
 import rl "vendor:raylib"
+import rlgl "vendor:raylib/rlgl"
 
 WIDTH :: 1280
 HEIGHT :: 720
@@ -181,6 +182,9 @@ main :: proc() {
 	texture := rl.LoadTextureFromImage(image)
 	rl.SetTargetFPS(rl.GetMonitorRefreshRate(rl.GetCurrentMonitor()))
 
+	camera: rl.Camera2D
+	camera.zoom = 1.0
+
 	for !rl.WindowShouldClose() {
 		// raylib doesn't respect my keybinds, so force it to also close on caps lock
 		if rl.IsKeyDown(.Q) || rl.IsKeyDown(.CAPS_LOCK) {
@@ -188,8 +192,29 @@ main :: proc() {
 		}
 
 		rl.BeginDrawing()
+
+		wheel := rl.GetMouseWheelMove()
+		if wheel != 0 {
+			mouseWorldPos := rl.GetScreenToWorld2D(rl.GetMousePosition(), camera)
+			camera.offset = rl.GetMousePosition()
+			camera.target = mouseWorldPos
+			scaleFactor := 1.0 + (0.25 * abs(wheel))
+			if wheel < 0 do scaleFactor = 1.0 / scaleFactor
+			camera.zoom = rl.Clamp(camera.zoom * scaleFactor, 0.125, 64.0)
+		}
+
+		rl.BeginMode2D(camera)
 		rl.ClearBackground({53,53,53,255})
 		rl.DrawTexture(texture, 0, 0, rl.WHITE)
+
+		rlgl.PushMatrix()
+			//rlgl.Translatef(0, 0, 0)
+			rlgl.Rotatef(90, 1, 0, 0)
+
+			draw_grid(x=0, y=0, width=1000, height=700)
+		rlgl.PopMatrix()
+		rl.EndMode2D()
+
 
 		if rl.IsKeyDown(.LEFT_SHIFT) || rl.IsKeyDown(.RIGHT_SHIFT) || rl.IsKeyDown(.LEFT_CONTROL) || rl.IsKeyDown(.RIGHT_CONTROL) {
 			rl.DrawFPS(0,0)
