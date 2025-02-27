@@ -199,6 +199,7 @@ main :: proc() {
 	hasResized := false
 
 	keyPressRepeatTime := time.now()
+	start := time.now()
 
 	for !rl.WindowShouldClose() {
 		// raylib doesn't respect my keybinds, so force it to also close on caps lock
@@ -233,7 +234,8 @@ main :: proc() {
 
 
 		// Fit the image size to the screen
-		if firstResize || rl.IsGestureDetected(.DOUBLETAP) || rl.IsKeyPressed(.ENTER) || rl.IsKeyPressed(.SPACE) {
+		// We also do this on the first resize event within 60ms of startup, because Linux window managers...
+		if (firstResize && time.since(start) < 60 * time.Millisecond) || rl.IsGestureDetected(.DOUBLETAP) || rl.IsKeyPressed(.ENTER) || rl.IsKeyPressed(.SPACE) {
 			screenWidth := f32(rl.GetScreenWidth())
 			screenHeight := f32(rl.GetScreenHeight())
 
