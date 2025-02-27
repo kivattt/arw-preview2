@@ -260,6 +260,9 @@ main :: proc() {
 			}
 		}
 
+		if rl.IsKeyPressed(.LEFT_SHIFT) || rl.IsKeyPressed(.RIGHT_SHIFT) {
+			fpsTextEnabled = !fpsTextEnabled
+		}
 
 		camera.zoom = min(10_000, camera.zoom)
 		camera.zoom = max(0.01, camera.zoom)
@@ -273,10 +276,6 @@ main :: proc() {
 			draw_grid(texture.width, texture.height, {255,255,255,40})
 		}
 		rl.EndMode2D()
-
-		if rl.IsKeyPressed(.LEFT_SHIFT) || rl.IsKeyPressed(.RIGHT_SHIFT) || rl.IsKeyPressed(.LEFT_CONTROL) || rl.IsKeyPressed(.RIGHT_CONTROL) {
-			fpsTextEnabled = !fpsTextEnabled
-		}
 
 		if fpsTextEnabled {
 			buf: [16]byte
