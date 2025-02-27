@@ -110,6 +110,10 @@ get_jpeg_image_preview_from_arw_data :: proc(data: ^[]u8) -> (previewImageStart,
 	return 0, 0, .NoPreviewImage
 }
 
+is_key_pressed :: proc(key: rl.KeyboardKey) -> bool {
+	return rl.IsKeyPressed(key) || rl.IsKeyPressedRepeat(key)
+}
+
 main :: proc() {
 	if len(os.args) < 2 {
 		usage(os.args[0])
@@ -249,6 +253,8 @@ main :: proc() {
 			firstResize = false
 		}
 
+		isCtrlDown := rl.IsKeyDown(.LEFT_CONTROL) || rl.IsKeyDown(.RIGHT_CONTROL)
+		didZoom := false
 		allowKeyRepeat := time.since(keyPressRepeatTime) > KEY_REPEAT_MILLIS * time.Millisecond
 		if allowKeyRepeat {
 			keyPressRepeatTime = time.now()
@@ -259,20 +265,29 @@ main :: proc() {
 			up    |= rl.IsKeyDown(.W)
 			down  |= rl.IsKeyDown(.S)
 
-			isCtrlDown := rl.IsKeyDown(.LEFT_CONTROL) || rl.IsKeyDown(.RIGHT_CONTROL)
 			if isCtrlDown {
 				left  |= rl.IsKeyDown(.LEFT)
 				right |= rl.IsKeyDown(.RIGHT)
 				up    |= rl.IsKeyDown(.UP)
 				down  |= rl.IsKeyDown(.DOWN)
 			} else {
-				charPressed := rl.GetCharPressed()
-				if rl.IsKeyDown(.UP) || charPressed == '+' do camera.zoom *= 1+ZOOM_SPEED
-				else if rl.IsKeyDown(.DOWN) || charPressed == '-' do camera.zoom *= 1.0 / (1+ZOOM_SPEED)
+				if rl.IsKeyDown(.UP) {
+					didZoom = true
+					camera.zoom *= 1 + ZOOM_SPEED
+				} else if rl.IsKeyDown(.DOWN) {
+					didZoom = true
+					camera.zoom *= 1.0 / (1 + ZOOM_SPEED)
+				}
 			}
 
 			movementVector := [2]f32{f32(int(right)) - f32(int(left)), f32(int(down)) - f32(int(up))}
 			camera.target += movementVector * (MOVEMENT_SPEED / camera.zoom)
+		}
+
+		if !isCtrlDown && !didZoom {
+			charPressed := rl.GetCharPressed()
+			if charPressed == '+' do camera.zoom *= 1+ZOOM_SPEED
+			else if charPressed == '-' do camera.zoom *= 1.0 / (1+ZOOM_SPEED)
 		}
 
 		if rl.IsKeyPressed(.LEFT_SHIFT) || rl.IsKeyPressed(.RIGHT_SHIFT) {
