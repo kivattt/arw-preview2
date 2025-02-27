@@ -216,16 +216,13 @@ main :: proc() {
 			scaleFactor := 1.0 + (0.25 * abs(wheel))
 			if wheel < 0 do scaleFactor = 1.0 / scaleFactor
 			camera.zoom *= scaleFactor
-
-			if camera.zoom > 10_000 {
-				camera.zoom = 10_000
-			}
 		}
 
 		if rl.IsWindowResized() {
 			camera.offset = {f32(rl.GetScreenWidth())/2, f32(rl.GetScreenHeight())/2}
 			firstResize = true
 		}
+
 
 		// Fit the image size to the screen
 		if firstResize || rl.IsGestureDetected(.DOUBLETAP) {
@@ -240,6 +237,9 @@ main :: proc() {
 			camera.target = {textureWidth / 2, textureHeight / 2}
 			firstResize = false
 		}
+
+		camera.zoom = min(10_000, camera.zoom)
+		camera.zoom = max(0.01, camera.zoom)
 
 		rl.BeginDrawing()
 		rl.BeginMode2D(camera)
