@@ -280,7 +280,7 @@ main :: proc() {
 			camera.target += movementVector * (MOVEMENT_SPEED / camera.zoom)
 		}
 
-		if !isCtrlDown && !didZoom {
+		if !didZoom {
 			charPressed := rl.GetCharPressed()
 			if charPressed == '+' do camera.zoom *= 1+ZOOM_SPEED
 			else if charPressed == '-' do camera.zoom *= 1.0 / (1+ZOOM_SPEED)
