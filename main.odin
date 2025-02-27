@@ -196,7 +196,7 @@ main :: proc() {
 	fpsTextEnabled := false
 	defer strings.builder_destroy(&fpsTextStringBuilder)
 
-	firstResize := false
+	hasResized := false
 
 	keyPressRepeatTime := time.now()
 
@@ -222,9 +222,13 @@ main :: proc() {
 			camera.zoom *= scaleFactor
 		}
 
+		firstResize := false
 		if rl.IsWindowResized() {
 			camera.offset = {f32(rl.GetScreenWidth())/2, f32(rl.GetScreenHeight())/2}
-			firstResize = true
+			if !hasResized {
+				hasResized = true
+				firstResize = true
+			}
 		}
 
 
