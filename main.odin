@@ -251,24 +251,13 @@ main :: proc() {
 			isWASD := rl.IsKeyDown(.W) || rl.IsKeyDown(.A) || rl.IsKeyDown(.S) || rl.IsKeyDown(.D)
 			charPressed := rl.GetCharPressed()
 			if isCtrlDown || isWASD {
-				if rl.IsKeyDown(.LEFT) || rl.IsKeyDown(.A) {
-					camera.target -= {MOVEMENT_SPEED / camera.zoom, 0}
-				}
-				if rl.IsKeyDown(.RIGHT) || rl.IsKeyDown(.D) {
-					camera.target += {MOVEMENT_SPEED / camera.zoom, 0}
-				}
-				if rl.IsKeyDown(.UP) || rl.IsKeyDown(.W) {
-					camera.target -= {0, MOVEMENT_SPEED / camera.zoom}
-				}
-				if rl.IsKeyDown(.DOWN) || rl.IsKeyDown(.S) {
-					camera.target += {0, MOVEMENT_SPEED / camera.zoom}
-				}
+				if rl.IsKeyDown(.LEFT) || rl.IsKeyDown(.A) do camera.target -= {MOVEMENT_SPEED / camera.zoom, 0}
+				if rl.IsKeyDown(.RIGHT) || rl.IsKeyDown(.D) do camera.target += {MOVEMENT_SPEED / camera.zoom, 0}
+				if rl.IsKeyDown(.UP) || rl.IsKeyDown(.W) do camera.target -= {0, MOVEMENT_SPEED / camera.zoom}
+				if rl.IsKeyDown(.DOWN) || rl.IsKeyDown(.S) do camera.target += {0, MOVEMENT_SPEED / camera.zoom}
 			} else {
-				if rl.IsKeyDown(.UP) || charPressed == '+' {
-					camera.zoom *= 1.25
-				} else if rl.IsKeyDown(.DOWN) || charPressed == '-' {
-					camera.zoom *= 1.0 / 1.25
-				}
+				if rl.IsKeyDown(.UP) || charPressed == '+' do camera.zoom *= 1.25
+				else if rl.IsKeyDown(.DOWN) || charPressed == '-' do camera.zoom *= 1.0 / 1.25
 			}
 		}
 
