@@ -206,7 +206,7 @@ main :: proc() {
 			camera.target = mouseWorldPos
 			scaleFactor := 1.0 + (0.25 * abs(wheel))
 			if wheel < 0 do scaleFactor = 1.0 / scaleFactor
-			camera.zoom = camera.zoom * scaleFactor
+			camera.zoom *= scaleFactor
 		}
 
 		rl.BeginMode2D(camera)
