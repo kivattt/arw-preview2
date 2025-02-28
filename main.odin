@@ -111,6 +111,10 @@ get_jpeg_image_preview_from_arw_data :: proc(data: ^[]u8) -> (previewImageStart,
 }
 
 main :: proc() {
+	track: mem.Tracking_Allocator
+	mem.tracking_allocator_init(&track, context.allocator)
+	context.allocator = mem.tracking_allocator(&track)
+
 	if len(os.args) < 2 {
 		usage(os.args[0])
 		os.exit(0)
@@ -188,6 +192,7 @@ main :: proc() {
 	image := rl.LoadImageFromMemory(".jpg", &data[previewImageStart], i32(previewImageLength))
 	texture := rl.LoadTextureFromImage(image)
 	rl.SetTargetFPS(rl.GetMonitorRefreshRate(rl.GetCurrentMonitor()))
+	rl.UnloadImage(image)
 
 	theFont := rl.LoadFontFromMemory(".ttf", raw_data(FONT_DATA), i32(len(FONT_DATA)), FONT_SIZE, nil, 0)
 
@@ -209,9 +214,12 @@ main :: proc() {
 		}
 
 		if rl.IsMouseButtonDown(.LEFT) || rl.IsMouseButtonDown(.RIGHT) || rl.IsMouseButtonDown(.MIDDLE) {
+			rl.SetMouseCursor(.RESIZE_ALL)
 			delta := rl.GetMouseDelta()
 			delta = delta * (-1.0 / camera.zoom)
 			camera.target += delta
+		} else {
+			rl.SetMouseCursor(.DEFAULT)
 		}
 
 		wheel := rl.GetMouseWheelMove()
@@ -313,5 +321,7 @@ main :: proc() {
 		}
 
 		rl.EndDrawing()
+
+		//fmt.println(track.total_memory_allocated)
 	}
 }
