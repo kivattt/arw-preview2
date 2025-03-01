@@ -159,12 +159,12 @@ main :: proc() {
 		rl.SetTraceLogLevel(.ERROR)
 	}
 
-	image: Maybe(rl.Image)
+	maybe_image: Maybe(rl.Image)
 	thread.create_and_start_with_poly_data3(
-		&image,
+		&maybe_image,
 		hasVerboseFlag,
 		filename,
-		proc(image: ^Maybe(rl.Image), hasVerboseFlag: bool, filename: string) {
+		proc(maybe_image: ^Maybe(rl.Image), hasVerboseFlag: bool, filename: string) {
 			data, success := os.read_entire_file_from_filename(filename)
 			if !success {
 				fmt.println("Failed to read file:", filename)
@@ -202,7 +202,7 @@ main :: proc() {
 				fmt.print("\x1b[0m")
 			}
 
-			image^ = rl.LoadImageFromMemory(
+			maybe_image^ = rl.LoadImageFromMemory(
 				".jpg",
 				&data[previewImageStart],
 				i32(previewImageLength),
@@ -240,10 +240,10 @@ main :: proc() {
 	start := time.now()
 
 	for !rl.WindowShouldClose() {
-		if img, ok := image.?; ok {
-			texture = rl.LoadTextureFromImage(img)
-			rl.UnloadImage(img)
-			image = nil
+		if image, ok := maybe_image.?; ok {
+			texture = rl.LoadTextureFromImage(image)
+			rl.UnloadImage(image)
+			maybe_image = nil
 		}
 
 		// raylib doesn't respect my keybinds, so force it to also close on caps lock
