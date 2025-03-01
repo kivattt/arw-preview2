@@ -208,6 +208,7 @@ main :: proc() {
 				i32(previewImageLength),
 			)
 		},
+		self_cleanup=true,
 	)
 
 	texture: rl.Texture
