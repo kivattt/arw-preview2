@@ -25,100 +25,9 @@ usage :: proc(programName: string) {
 	fmt.println("Usage:", programName, "[OPTIONS] [.ARW file]")
 	fmt.println("Preview Sony a6000 .ARW files")
 	fmt.println("")
-	fmt.println("      --verbose output ")
+	fmt.println("      --verbose output debug information")
 	fmt.println("  -v, --version output version information and exit")
-}
-
-ParseError :: enum {
-	None = 0,
-	TooSmallData,
-	MissingHeader,
-	InvalidValueOffset,
-	InvalidIFDOffset,
-	NoPreviewImage,
-}
-
-read_u16 :: proc(data: ^[]u8, pos: u32) -> (res: u16, success: bool) {
-	if int(pos) + 1 >= len(data) {
-		return 0, false
-	}
-
-	#no_bounds_check { 	// Just for fun
-		return u16(data[pos]) | u16(data[pos + 1]) << 8, true
-	}
-}
-
-read_u32 :: proc(data: ^[]u8, pos: u32) -> (res: u32, success: bool) {
-	if int(pos) + 3 >= len(data) {
-		return 0, false
-	}
-
-	#no_bounds_check { 	// Just for fun
-		return u32(data[pos]) |
-			u32(data[pos + 1]) << 8 |
-			u32(data[pos + 2]) << 16 |
-			u32(data[pos + 3]) << 24,
-			true
-	}
-}
-
-get_jpeg_image_preview_from_arw_data :: proc(
-	data: ^[]u8,
-) -> (
-	previewImageStart, previewImageLength: u32,
-	err: ParseError,
-) {
-	previewImageStart = 0
-	previewImageLength = 0
-	err = .TooSmallData
-
-	if len(data) < 8 {
-		return
-	}
-
-	if mem.compare(data[:4], {'I', 'I', 0x2a, 0x00}) != 0 {
-		return 0, 0, .MissingHeader
-	}
-
-	firstIFDOffset, firstIFDOffsetSuccess := read_u32(data, 4)
-	if !firstIFDOffsetSuccess do return
-
-	if firstIFDOffset == 0 || firstIFDOffset % 2 != 0 {
-		return 0, 0, .InvalidIFDOffset
-	}
-
-	numDirEntries, numDirEntriesSuccess := read_u16(data, firstIFDOffset)
-	if !numDirEntriesSuccess do return
-
-	for i: u16 = 0; i < numDirEntries; i += 1 {
-		offset := firstIFDOffset + 2 + u32(i * 12)
-
-		tag, tagSuccess := read_u16(data, offset)
-		if !tagSuccess do return
-
-		type, typeSuccess := read_u16(data, offset + 2)
-		if !typeSuccess do return
-
-		valueOffset, valueOffsetSuccess := read_u32(data, offset + 8)
-		if !valueOffsetSuccess do return
-
-		valueOffsetIsValue := type != 5
-
-		if valueOffsetIsValue {
-			if tag == 0x0201 {
-				previewImageStart = valueOffset
-			} else if tag == 0x0202 {
-				previewImageLength = valueOffset
-				return previewImageStart, previewImageLength, .None
-			}
-		} else {
-			if valueOffset % 2 != 0 {
-				return 0, 0, .InvalidValueOffset
-			}
-		}
-	}
-
-	return 0, 0, .NoPreviewImage
+	fmt.println("  -h, --help    display this help and exit")
 }
 
 fit_camera_to_image :: proc(camera: ^rl.Camera2D, screenWidth, screenHeight, textureWidth, textureHeight: f32) {
@@ -141,15 +50,23 @@ main :: proc() {
 
 	hasVerboseFlag := false
 	hasVersionFlag := false
+	hasHelpFlag := false
 	for i := 1; i < len(os.args); i += 1 {
 		arg := os.args[i]
 		if arg == "-v" || arg == "--version" {
 			hasVersionFlag = true
 		} else if arg == "--verbose" {
 			hasVerboseFlag = true
+		} else if arg == "-h" || arg == "--help" {
+			hasHelpFlag = true
 		} else {
 			filename = arg
 		}
+	}
+
+	if hasHelpFlag {
+		usage(os.args[0])
+		os.exit(0)
 	}
 
 	if hasVersionFlag {
@@ -175,52 +92,33 @@ main :: proc() {
 		hasVerboseFlag,
 		filename,
 		proc(imagePointer: ^^rl.Image, imagePointerMutex: ^sync.Mutex, hasVerboseFlag: bool, filename: string) {
-			data, success := os.read_entire_file_from_filename(filename)
-			if !success {
-				fmt.println("Failed to read file:", filename)
+			image, logText, err := load_jpeg_image_preview_from_filename(filename)
+			if err == .None {
+				if hasVerboseFlag {
+					fmt.print(logText)
+				}
+
+				sync.lock(imagePointerMutex)
+				imagePointer^ = image
+				sync.unlock(imagePointerMutex)
+			} else {
+				#partial switch err {
+				case .FailedToReadFile:
+					fmt.println("Failed to read file:", filename)
+				case .TooSmallData:
+					fmt.println("Too small file")
+				case .MissingHeader:
+					fmt.println("Missing header, not a little-endian TIFF file")
+				case .InvalidIFDOffset:
+					fmt.println("Found an IFD offset not beginning on a word boundary, or zero")
+				case .InvalidValueOffset:
+					fmt.println("Invalid value offset. Found a value not beginning on a word boundary")
+				case .NoPreviewImage:
+					fmt.println("No preview image found!")
+				}
+
 				os.exit(1)
 			}
-			defer delete(data)
-
-			previewImageStart, previewImageLength, err := get_jpeg_image_preview_from_arw_data(
-				&data,
-			)
-			switch err {
-			case .None:
-			case .TooSmallData:
-				fmt.println("Too small file")
-				os.exit(1)
-			case .MissingHeader:
-				fmt.println("Missing header, not a little-endian TIFF file")
-				os.exit(1)
-			case .InvalidIFDOffset:
-				fmt.println("Found an IFD offset not beginning on a word boundary, or zero")
-				os.exit(1)
-			case .InvalidValueOffset:
-				fmt.println("Invalid value offset. Found a value not beginning on a word boundary")
-				os.exit(1)
-			case .NoPreviewImage:
-				fmt.println("No preview image found!")
-				os.exit(1)
-			}
-
-			if hasVerboseFlag {
-				fmt.print("\x1b[1;32m")
-				fmt.println("preview image start  :", previewImageStart)
-				fmt.println("preview image length :", previewImageLength)
-				fmt.print("\x1b[0m")
-			}
-
-			image := new(rl.Image)
-			image^ = rl.LoadImageFromMemory(
-				".jpg",
-				&data[previewImageStart],
-				i32(previewImageLength),
-			)
-
-			sync.lock(imagePointerMutex)
-			imagePointer^ = image
-			sync.unlock(imagePointerMutex)
 		},
 		self_cleanup=true,
 	)
