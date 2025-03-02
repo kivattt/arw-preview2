@@ -121,6 +121,12 @@ get_jpeg_image_preview_from_arw_data :: proc(
 	return 0, 0, .NoPreviewImage
 }
 
+fit_camera_to_image :: proc(camera: ^rl.Camera2D, screenWidth, screenHeight, textureWidth, textureHeight: f32) {
+	camera.zoom = min(screenWidth / textureWidth, screenHeight / textureHeight)
+	camera.offset = {screenWidth / 2, screenHeight / 2}
+	camera.target = {textureWidth / 2, textureHeight / 2}
+}
+
 main :: proc() {
 	track: mem.Tracking_Allocator
 	mem.tracking_allocator_init(&track, context.allocator)
@@ -254,6 +260,7 @@ main :: proc() {
 			texture = rl.LoadTextureFromImage(imagePointer^)
 			rl.UnloadImage(imagePointer^)
 			imagePointer = nil
+			fit_camera_to_image(&camera, f32(rl.GetScreenWidth()), f32(rl.GetScreenHeight()), f32(texture.width), f32(texture.height))
 		}
 		sync.unlock(&imagePointerMutex)
 
@@ -299,15 +306,7 @@ main :: proc() {
 		   rl.IsGestureDetected(.DOUBLETAP) ||
 		   rl.IsKeyPressed(.ENTER) ||
 		   rl.IsKeyPressed(.SPACE) {
-			screenWidth := f32(rl.GetScreenWidth())
-			screenHeight := f32(rl.GetScreenHeight())
-
-			textureWidth := f32(texture.width)
-			textureHeight := f32(texture.height)
-
-			camera.zoom = min(screenWidth / textureWidth, screenHeight / textureHeight)
-			camera.offset = {screenWidth / 2, screenHeight / 2}
-			camera.target = {textureWidth / 2, textureHeight / 2}
+			fit_camera_to_image(&camera, f32(rl.GetScreenWidth()), f32(rl.GetScreenHeight()), f32(texture.width), f32(texture.height))
 			firstResize = false
 		}
 
