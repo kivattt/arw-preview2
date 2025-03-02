@@ -7,6 +7,7 @@ import "core:strconv"
 import "core:strings"
 import "core:text/i18n"
 import "core:thread"
+import "core:sync"
 import "core:time"
 import rl "vendor:raylib"
 
@@ -159,19 +160,21 @@ main :: proc() {
 		rl.SetTraceLogLevel(.ERROR)
 	}
 
-	maybe_image: Maybe(rl.Image)
-	thread.create_and_start_with_poly_data3(
-		&maybe_image,
+	imagePointer: ^rl.Image
+	imagePointerMutex: sync.Mutex
+
+	thread.create_and_start_with_poly_data4(
+		&imagePointer,
+		&imagePointerMutex,
 		hasVerboseFlag,
 		filename,
-		proc(maybe_image: ^Maybe(rl.Image), hasVerboseFlag: bool, filename: string) {
+		proc(imagePointer: ^^rl.Image, imagePointerMutex: ^sync.Mutex, hasVerboseFlag: bool, filename: string) {
 			data, success := os.read_entire_file_from_filename(filename)
 			if !success {
 				fmt.println("Failed to read file:", filename)
 				os.exit(1)
 			}
 			defer delete(data)
-
 
 			previewImageStart, previewImageLength, err := get_jpeg_image_preview_from_arw_data(
 				&data,
@@ -202,11 +205,16 @@ main :: proc() {
 				fmt.print("\x1b[0m")
 			}
 
-			maybe_image^ = rl.LoadImageFromMemory(
+			image := new(rl.Image)
+			image^ = rl.LoadImageFromMemory(
 				".jpg",
 				&data[previewImageStart],
 				i32(previewImageLength),
 			)
+
+			sync.lock(imagePointerMutex)
+			imagePointer^ = image
+			sync.unlock(imagePointerMutex)
 		},
 		self_cleanup=true,
 	)
@@ -241,11 +249,13 @@ main :: proc() {
 	start := time.now()
 
 	for !rl.WindowShouldClose() {
-		if image, ok := maybe_image.?; ok {
-			texture = rl.LoadTextureFromImage(image)
-			rl.UnloadImage(image)
-			maybe_image = nil
+		sync.lock(&imagePointerMutex)
+		if imagePointer != nil {
+			texture = rl.LoadTextureFromImage(imagePointer^)
+			rl.UnloadImage(imagePointer^)
+			imagePointer = nil
 		}
+		sync.unlock(&imagePointerMutex)
 
 		// raylib doesn't respect my keybinds, so force it to also close on caps lock
 		if rl.IsKeyDown(.Q) || rl.IsKeyDown(.CAPS_LOCK) {
@@ -378,4 +388,8 @@ main :: proc() {
 
 		//fmt.println(track.total_memory_allocated)
 	}
+
+	sync.lock(&imagePointerMutex)
+	free(imagePointer)
+	sync.unlock(&imagePointerMutex)
 }
