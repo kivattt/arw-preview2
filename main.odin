@@ -86,6 +86,12 @@ main :: proc() {
 	imagePointer: ^rl.Image
 	imagePointerMutex: sync.Mutex
 
+	defer {
+		sync.lock(&imagePointerMutex)
+		free(imagePointer)
+		sync.unlock(&imagePointerMutex)
+	}
+
 	thread.create_and_start_with_poly_data4(
 		&imagePointer,
 		&imagePointerMutex,
@@ -285,8 +291,4 @@ main :: proc() {
 
 		//fmt.println(track.total_memory_allocated)
 	}
-
-	sync.lock(&imagePointerMutex)
-	free(imagePointer)
-	sync.unlock(&imagePointerMutex)
 }
