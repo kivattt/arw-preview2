@@ -85,6 +85,8 @@ main :: proc() {
 
 	imagePointer: ^rl.Image
 	imagePointerMutex: sync.Mutex
+	// TODO: Implement this
+	//imageLoadErrorShouldExit := false
 
 	defer {
 		sync.lock(&imagePointerMutex)
@@ -123,9 +125,12 @@ main :: proc() {
 					fmt.println("No preview image found!")
 				}
 
+				// Signal the main thread to print the error and os.exit(1)
+				//sync.atomic_store(&imageLoadErrorShouldExit, true)
 				os.exit(1)
 			}
 		},
+		init_context=context, // So we can track its memory usage
 		self_cleanup=true,
 	)
 
@@ -289,6 +294,6 @@ main :: proc() {
 
 		rl.EndDrawing()
 
-		//fmt.println(track.total_memory_allocated)
+		//fmt.println(track.current_memory_allocated)
 	}
 }
