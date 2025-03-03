@@ -29,11 +29,9 @@ read_u32_le :: proc(data: ^[]u8, pos: u32) -> (res: u32, success: bool) {
 get_jpeg_image_preview_offsets_from_arw_data :: proc(
 	data: ^[]u8,
 ) -> (
-	previewImageStart, previewImageLength: u32,
+	previewImage: []u8,
 	err: ImageLoadingError,
 ) {
-	previewImageStart = 0
-	previewImageLength = 0
 	err = .TooSmallData
 
 	if len(data) < 8 {
@@ -41,18 +39,21 @@ get_jpeg_image_preview_offsets_from_arw_data :: proc(
 	}
 
 	if mem.compare(data[:4], {'I', 'I', 0x2a, 0x00}) != 0 {
-		return 0, 0, .MissingHeader
+		return nil, .MissingHeader
 	}
 
 	firstIFDOffset, firstIFDOffsetSuccess := read_u32_le(data, 4)
 	if !firstIFDOffsetSuccess do return
 
 	if firstIFDOffset == 0 || firstIFDOffset % 2 != 0 {
-		return 0, 0, .InvalidIFDOffset
+		return nil, .InvalidIFDOffset
 	}
 
 	numDirEntries, numDirEntriesSuccess := read_u16_le(data, firstIFDOffset)
 	if !numDirEntriesSuccess do return
+
+	previewImageStart: u32 = 0
+	previewImageLength: u32 = 0
 
 	for i: u16 = 0; i < numDirEntries; i += 1 {
 		offset := firstIFDOffset + 2 + u32(i * 12)
@@ -73,14 +74,14 @@ get_jpeg_image_preview_offsets_from_arw_data :: proc(
 				previewImageStart = valueOffset
 			} else if tag == 0x0202 {
 				previewImageLength = valueOffset
-				return previewImageStart, previewImageLength, .None
+				return data[previewImageStart:previewImageStart + previewImageLength], .None
 			}
 		} else {
 			if valueOffset % 2 != 0 {
-				return 0, 0, .InvalidValueOffset
+				return nil, .InvalidValueOffset
 			}
 		}
 	}
 
-	return 0, 0, .NoPreviewImage
+	return nil, .NoPreviewImage
 }

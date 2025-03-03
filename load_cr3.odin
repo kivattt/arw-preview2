@@ -29,16 +29,14 @@ read_u32_be :: proc(data: ^[]u8, pos: u32) -> (res: u32, success: bool) {
 get_jpeg_image_preview_offsets_from_cr3_data :: proc(
 	data: ^[]u8,
 ) -> (
-	previewImageStart, previewImageLength: u32,
+	previewImage: []u8,
 	err: ImageLoadingError,
 ) {
-	previewImageStart = 0
-	previewImageLength = 0
 	err = .TooSmallData
 
 	// FIXME: Sketchy shit cause CR3 doesn't have a real ass header
 	if mem.compare(data[:4], {0, 0, 0, 24}) != 0 {
-		return 0, 0, .MissingHeader
+		return nil, .MissingHeader
 	}
 
 	offset: u32 = 0
@@ -56,11 +54,11 @@ get_jpeg_image_preview_offsets_from_cr3_data :: proc(
 			extendedType := data[offset + 8:offset + 8 + 16]
 			// PreviewImage UUID magic number
 			if mem.compare(extendedType, {0xea, 0xf4, 0x2b, 0x5e, 0x1c, 0x98, 0x4b, 0x88, 0xb9, 0xfb, 0xb7, 0xdc, 0x40, 0x6e, 0x4d, 0x16}) == 0 {
-				previewImageStart = offset + 56
+				previewImageStart := offset + 56
 				previewImageLength, success := read_u32_be(data, previewImageStart - 4)
 				if !success do return
 
-				return previewImageStart, previewImageLength, .None
+				return data[previewImageStart:previewImageStart + previewImageLength], .None
 			}
 		}
 
@@ -70,5 +68,5 @@ get_jpeg_image_preview_offsets_from_cr3_data :: proc(
 		}
 	}
 
-	return 0, 0, .NoPreviewImage
+	return nil, .NoPreviewImage
 }

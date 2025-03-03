@@ -20,11 +20,11 @@ ImageLoadingError :: enum {
 get_jpeg_image_preview_offsets_from_image_data :: proc(
 	data: ^[]u8
 ) -> (
-	previewImageStart, previewImageLength: u32,
+	previewImage: []u8,
 	err: ImageLoadingError,
 ) {
 	if len(data) < 8 {
-		return 0, 0, .TooSmallData
+		return nil, .TooSmallData
 	}
 
 	if mem.compare(data[:4], {'I', 'I', 0x2a, 0x00}) == 0 {
@@ -44,10 +44,8 @@ load_jpeg_image_preview_from_filename :: proc(filename: string) -> (image: ^rl.I
 	}
 	defer delete(data)
 
-	// TODO: Turn the return value of get_jpeg_image_preview_offsets_from_image_data() into a slice
-	previewImageStart: u32
-	previewImageLength: u32
-	previewImageStart, previewImageLength, err = get_jpeg_image_preview_offsets_from_image_data(
+	previewImage: []u8
+	previewImage, err = get_jpeg_image_preview_offsets_from_image_data(
 		&data,
 	)
 
@@ -58,14 +56,14 @@ load_jpeg_image_preview_from_filename :: proc(filename: string) -> (image: ^rl.I
 	image = new(rl.Image)
 	image^ = rl.LoadImageFromMemory(
 		".jpg",
-		&data[previewImageStart],
-		i32(previewImageLength),
+		raw_data(previewImage),
+		i32(len(previewImage)),
 	)
 
 	logBuilder := strings.builder_make()
 	strings.write_string(&logBuilder, "\x1b[1;32m")
-	fmt.sbprintln(&logBuilder, "preview image start  :", previewImageStart)
-	fmt.sbprintln(&logBuilder, "preview image length :", previewImageLength)
+	fmt.sbprintln(&logBuilder, "preview image start  :", uintptr(&previewImage[0]) - uintptr(&data[0]))
+	fmt.sbprintln(&logBuilder, "preview image length :", len(previewImage))
 	strings.write_string(&logBuilder, "\x1b[0m")
 	logText := strings.clone(strings.to_string(logBuilder))
 	strings.builder_destroy(&logBuilder)
