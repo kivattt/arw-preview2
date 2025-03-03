@@ -54,6 +54,7 @@ get_jpeg_image_preview_offsets_from_cr3_data :: proc(
 
 		if type == 0x75756964 { // "uuid"
 			extendedType := data[offset + 8:offset + 8 + 16]
+			// PreviewImage UUID magic number
 			if mem.compare(extendedType, {0xea, 0xf4, 0x2b, 0x5e, 0x1c, 0x98, 0x4b, 0x88, 0xb9, 0xfb, 0xb7, 0xdc, 0x40, 0x6e, 0x4d, 0x16}) == 0 {
 				previewImageStart = offset + 56
 				previewImageLength, success := read_u32_be(data, previewImageStart - 4)
