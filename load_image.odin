@@ -62,7 +62,7 @@ load_jpeg_image_preview_from_filename :: proc(filename: string) -> (image: ^rl.I
 
 	logBuilder := strings.builder_make()
 	strings.write_string(&logBuilder, "\x1b[1;32m")
-	fmt.sbprintln(&logBuilder, "preview image start  :", uintptr(&previewImage[0]) - uintptr(&data[0]))
+	fmt.sbprintln(&logBuilder, "preview image start  :", mem.ptr_sub(&previewImage[0], &data[0]))
 	fmt.sbprintln(&logBuilder, "preview image length :", len(previewImage))
 	strings.write_string(&logBuilder, "\x1b[0m")
 	logText := strings.clone(strings.to_string(logBuilder))
