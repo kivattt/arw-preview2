@@ -1,5 +1,18 @@
 ## This is a work-in-progress project
 
+## Building
+Install [Odin](https://odin-lang.org/)
+```
+odin build . -o:speed
+```
+
+## Running
+```
+./arw-preview2 example.ARW
+# or
+./arw-preview2 example.CR3
+```
+
 ## Todo
 - Right click -> Copy to clipboard
 - Multiple files
