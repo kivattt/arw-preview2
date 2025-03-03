@@ -1,5 +1,7 @@
 ## This is a work-in-progress project
 
+Quickly preview raw camera image files
+
 ## Supported image files
 - .ARW by Sony a6000
 - .CR3 by Canon EOS R50
