@@ -101,6 +101,8 @@ main :: proc() {
 		filename,
 		proc(imagePointer: ^^rl.Image, imagePointerMutex: ^sync.Mutex, hasVerboseFlag: bool, filename: string) {
 			image, logText, err := load_jpeg_image_preview_from_filename(filename)
+			defer delete(logText)
+
 			if err == .None {
 				if hasVerboseFlag {
 					fmt.print(logText)

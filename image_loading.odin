@@ -100,6 +100,7 @@ get_jpeg_image_preview_offsets_from_arw_data :: proc(
 	return 0, 0, .NoPreviewImage
 }
 
+// Remember to delete the logString return value once you're done with it!
 load_jpeg_image_preview_from_filename :: proc(filename: string) -> (image: ^rl.Image, logString: string, err: ImageLoadingError) {
 	// I don't think we use the default temp allocator in this function, but the docs say to do this.
 	defer runtime.default_temp_allocator_destroy(cast(^runtime.Default_Temp_Allocator)context.temp_allocator.data)
@@ -133,6 +134,7 @@ load_jpeg_image_preview_from_filename :: proc(filename: string) -> (image: ^rl.I
 	fmt.sbprintln(&logBuilder, "preview image start  :", previewImageStart)
 	fmt.sbprintln(&logBuilder, "preview image length :", previewImageLength)
 	strings.write_string(&logBuilder, "\x1b[0m")
+	logText := strings.clone(strings.to_string(logBuilder))
 	strings.builder_destroy(&logBuilder)
-	return image, strings.to_string(logBuilder), .None
+	return image, logText, .None
 }
