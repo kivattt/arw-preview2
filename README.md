@@ -1,5 +1,11 @@
 ## This is a work-in-progress project
 
+## Supported image files
+- .ARW by Sony a6000
+- .CR3 by Canon EOS R50
+
+Raw image files created by other camera models have not been tested.
+
 ## Building
 Install [Odin](https://odin-lang.org/)
 ```
