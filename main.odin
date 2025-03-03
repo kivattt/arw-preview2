@@ -25,6 +25,7 @@ usage :: proc(programName: string) {
 	fmt.println("Usage:", programName, "[OPTIONS] [.ARW file]")
 	fmt.println("Preview Sony a6000 .ARW files")
 	fmt.println("")
+	fmt.println("      --close-on-first-frame close on first frame drawn (startup profiling purposes)")
 	fmt.println("      --verbose output debug information")
 	fmt.println("  -v, --version output version information and exit")
 	fmt.println("  -h, --help    display this help and exit")
@@ -48,6 +49,7 @@ main :: proc() {
 
 	filename: string
 
+	hasCloseOnFirstFrameFlag := false
 	hasVerboseFlag := false
 	hasVersionFlag := false
 	hasHelpFlag := false
@@ -59,6 +61,8 @@ main :: proc() {
 			hasVerboseFlag = true
 		} else if arg == "-h" || arg == "--help" {
 			hasHelpFlag = true
+		} else if arg == "--close-on-first-frame" {
+			hasCloseOnFirstFrameFlag = true
 		} else {
 			filename = arg
 		}
@@ -166,12 +170,17 @@ main :: proc() {
 	start := time.now()
 
 	for !rl.WindowShouldClose() {
+		shouldQuit := false
+
 		sync.lock(&imagePointerMutex)
 		if imagePointer != nil {
 			texture = rl.LoadTextureFromImage(imagePointer^)
 			rl.UnloadImage(imagePointer^)
 			imagePointer = nil
 			fit_camera_to_image(&camera, f32(rl.GetScreenWidth()), f32(rl.GetScreenHeight()), f32(texture.width), f32(texture.height))
+			if hasCloseOnFirstFrameFlag {
+				shouldQuit = true
+			}
 		}
 		sync.unlock(&imagePointerMutex)
 
@@ -295,6 +304,10 @@ main :: proc() {
 		}
 
 		rl.EndDrawing()
+
+		if shouldQuit {
+			break
+		}
 
 		//fmt.println(track.current_memory_allocated)
 	}
