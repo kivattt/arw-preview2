@@ -37,7 +37,15 @@ fit_camera_to_image :: proc(camera: ^rl.Camera2D, screenWidth, screenHeight, tex
 	camera.target = {textureWidth / 2, textureHeight / 2}
 }
 
-main :: proc() {
+ImageLoadThreadData :: struct {
+	imagePointer: ^^rl.Image,
+	imagePointerMutex: ^sync.Mutex,
+	imageLoadErrorShouldExit: ^bool,
+	hasVerboseFlag: bool,
+	filename: string,
+}
+
+run :: proc() -> (exitCode: int) {
 	track: mem.Tracking_Allocator
 	mem.tracking_allocator_init(&track, context.allocator)
 	context.allocator = mem.tracking_allocator(&track)
@@ -89,8 +97,7 @@ main :: proc() {
 
 	imagePointer: ^rl.Image
 	imagePointerMutex: sync.Mutex
-	// TODO: Implement this
-	//imageLoadErrorShouldExit := false
+	imageLoadErrorShouldExit := false
 
 	defer {
 		sync.lock(&imagePointerMutex)
@@ -98,27 +105,33 @@ main :: proc() {
 		sync.unlock(&imagePointerMutex)
 	}
 
-	thread.create_and_start_with_poly_data4(
-		&imagePointer,
-		&imagePointerMutex,
-		hasVerboseFlag,
-		filename,
-		proc(imagePointer: ^^rl.Image, imagePointerMutex: ^sync.Mutex, hasVerboseFlag: bool, filename: string) {
-			image, logText, err := load_jpeg_image_preview_from_filename(filename)
+	threadData := ImageLoadThreadData{
+		imagePointer = &imagePointer,
+		imagePointerMutex = &imagePointerMutex,
+		imageLoadErrorShouldExit = &imageLoadErrorShouldExit,
+		hasVerboseFlag = hasVerboseFlag,
+		filename = filename,
+	}
+
+	thread.create_and_start_with_poly_data(
+		threadData,
+		proc(threadData: ImageLoadThreadData) {
+			image, logText, err := load_jpeg_image_preview_from_filename(threadData.filename)
 			defer delete(logText)
 
 			if err == .None {
-				if hasVerboseFlag {
+				if threadData.hasVerboseFlag {
 					fmt.print(logText)
 				}
 
-				sync.lock(imagePointerMutex)
-				imagePointer^ = image
-				sync.unlock(imagePointerMutex)
+				sync.lock(threadData.imagePointerMutex)
+				threadData.imagePointer^ = image
+				sync.unlock(threadData.imagePointerMutex)
 			} else {
+				// FIXME: Hand the error string over to the main thread for printing
 				#partial switch err {
 				case .FailedToReadFile:
-					fmt.println("Failed to read file:", filename)
+					fmt.println("Failed to read file:", threadData.filename)
 				case .TooSmallData:
 					fmt.println("Too small file")
 				case .MissingHeader:
@@ -131,9 +144,8 @@ main :: proc() {
 					fmt.println("No preview image found!")
 				}
 
-				// Signal the main thread to print the error and os.exit(1)
-				//sync.atomic_store(&imageLoadErrorShouldExit, true)
-				os.exit(1)
+				// Signal the main thread to os.exit(1)
+				sync.atomic_store(threadData.imageLoadErrorShouldExit, true)
 			}
 		},
 		init_context=context, // So we can track its memory usage
@@ -171,6 +183,11 @@ main :: proc() {
 
 	for !rl.WindowShouldClose() {
 		shouldQuit := false
+
+		if sync.atomic_load(threadData.imageLoadErrorShouldExit) {
+			exitCode = 1
+			break
+		}
 
 		sync.lock(&imagePointerMutex)
 		if imagePointer != nil {
@@ -218,7 +235,6 @@ main :: proc() {
 				firstResize = true
 			}
 		}
-
 
 		// Fit the image size to the screen
 		// We also do this on the first resize event within 60ms of startup, because Linux window managers...
@@ -311,4 +327,11 @@ main :: proc() {
 
 		//fmt.println(track.current_memory_allocated)
 	}
+
+	return exitCode
+}
+
+main :: proc() {
+	exitCode := run()
+	os.exit(exitCode)
 }
