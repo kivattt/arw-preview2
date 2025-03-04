@@ -42,13 +42,9 @@ get_jpeg_image_preview_offsets_from_cr3_data :: proc(
 	offset: u32 = 0
 	for {
 		size, sizeSuccess := read_u32_be(data, offset)
-		if !sizeSuccess {
-			return
-		}
+		if !sizeSuccess do return
 		type, typeSuccess := read_u32_be(data, offset+4)
-		if !typeSuccess {
-			return
-		}
+		if !typeSuccess do return
 
 		if type == 0x75756964 { // "uuid"
 			extendedType := data[offset + 8:offset + 8 + 16]
