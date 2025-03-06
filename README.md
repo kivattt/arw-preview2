@@ -9,7 +9,7 @@ Quickly preview raw camera image files
 Raw image files created by other camera models have not been tested.
 
 ## Building
-Install [Odin](https://odin-lang.org/)
+Install [Odin](https://odin-lang.org/) version dev-2025-03
 ```
 odin build . -o:speed
 ```

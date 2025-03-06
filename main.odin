@@ -308,9 +308,15 @@ run :: proc() -> (exitCode: int) {
 			fpsText := strconv.itoa(buf[:], int(rl.GetFPS()))
 			strings.write_string(&fpsTextStringBuilder, fpsText)
 			strings.write_string(&fpsTextStringBuilder, " fps")
+			fpsTextCString, err := strings.to_cstring(&fpsTextStringBuilder)
+			if err != nil {
+				fmt.println(err)
+				break
+			}
+
 			rl.DrawTextEx(
 				theFont,
-				strings.to_cstring(&fpsTextStringBuilder),
+				fpsTextCString,
 				{5, 5},
 				FONT_SIZE,
 				0,
