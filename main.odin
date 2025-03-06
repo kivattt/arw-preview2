@@ -259,15 +259,15 @@ run :: proc() -> (exitCode: int) {
 			down |= rl.IsKeyDown(.S)
 
 			if isCtrlDown {
-				left |= rl.IsKeyDown(.LEFT)
-				right |= rl.IsKeyDown(.RIGHT)
-				up |= rl.IsKeyDown(.UP)
-				down |= rl.IsKeyDown(.DOWN)
+				left |= rl.IsKeyDown(.LEFT) | rl.IsKeyDown(.H)
+				right |= rl.IsKeyDown(.RIGHT) | rl.IsKeyDown(.L)
+				up |= rl.IsKeyDown(.UP) | rl.IsKeyDown(.K)
+				down |= rl.IsKeyDown(.DOWN) | rl.IsKeyDown(.J)
 			} else {
-				if rl.IsKeyDown(.UP) {
+				if rl.IsKeyDown(.UP) || rl.IsKeyDown(.K) {
 					didZoom = true
 					camera.zoom *= 1 + ZOOM_SPEED
-				} else if rl.IsKeyDown(.DOWN) {
+				} else if rl.IsKeyDown(.DOWN) || rl.IsKeyDown(.J) {
 					didZoom = true
 					camera.zoom *= 1.0 / (1 + ZOOM_SPEED)
 				}
