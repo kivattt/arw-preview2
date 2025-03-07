@@ -1,56 +1,56 @@
 package main
 
+import "core:os"
 import "core:mem"
 
-read_u16_le :: proc(data: ^[]u8, pos: u32) -> (res: u16, success: bool) {
-	if int(pos) + 1 >= len(data) {
-		return 0, false
-	}
-
+read_u16_le :: proc(data: ^[]u8, pos: u32) -> (res: u16) {
 	#no_bounds_check { 	// Just for fun
-		return u16(data[pos]) | u16(data[pos + 1]) << 8, true
+		return u16(data[pos]) | u16(data[pos + 1]) << 8
 	}
 }
 
-read_u32_le :: proc(data: ^[]u8, pos: u32) -> (res: u32, success: bool) {
-	if int(pos) + 3 >= len(data) {
-		return 0, false
-	}
-
+read_u32_le :: proc(data: ^[]u8, pos: u32) -> (res: u32) {
 	#no_bounds_check { 	// Just for fun
 		return u32(data[pos]) |
 			u32(data[pos + 1]) << 8 |
 			u32(data[pos + 2]) << 16 |
-			u32(data[pos + 3]) << 24,
-			true
+			u32(data[pos + 3]) << 24
 	}
 }
 
-get_jpeg_image_preview_offsets_from_arw_data :: proc(
-	data: ^[]u8,
+// Remember to delete the returned previewImage
+get_jpeg_image_preview_from_arw_file :: proc(
+	fileHandle: os.Handle
 ) -> (
 	previewImage: []u8,
 	err: ImageLoadingError,
 ) {
 	err = .TooSmallData
 
-	if len(data) < 8 {
-		return
+	fileSize, fileSizeErr := os.file_size(fileHandle)
+	if fileSizeErr != nil {
+		return nil, .FailedToReadFile
 	}
 
-	if mem.compare(data[:4], {'I', 'I', 0x2a, 0x00}) != 0 {
-		return nil, .MissingHeader
-	}
+	if fileSize < 8 do return
 
-	firstIFDOffset, firstIFDOffsetSuccess := read_u32_le(data, 4)
-	if !firstIFDOffsetSuccess do return
+	if _, err := os.seek(fileHandle, 4, os.SEEK_SET); err != nil do return
+	firstIFDOffsetData := make([]u8, 4)
+	defer delete(firstIFDOffsetData)
+	if _, err := os.read_full(fileHandle, firstIFDOffsetData); err != nil do return
+
+	firstIFDOffset := read_u32_le(&firstIFDOffsetData, 0)
 
 	if firstIFDOffset == 0 || firstIFDOffset % 2 != 0 {
 		return nil, .InvalidIFDOffset
 	}
 
-	numDirEntries, numDirEntriesSuccess := read_u16_le(data, firstIFDOffset)
-	if !numDirEntriesSuccess do return
+	if _, err := os.seek(fileHandle, i64(firstIFDOffset), os.SEEK_SET); err != nil do return
+	numDirEntriesData := make([]u8, 2)
+	defer delete(numDirEntriesData)
+	if _, err := os.read_full(fileHandle, numDirEntriesData); err != nil do return
+
+	numDirEntries := read_u16_le(&numDirEntriesData, 0)
 
 	previewImageStart: u32 = 0
 	previewImageLength: u32 = 0
@@ -58,14 +58,14 @@ get_jpeg_image_preview_offsets_from_arw_data :: proc(
 	for i: u16 = 0; i < numDirEntries; i += 1 {
 		offset := firstIFDOffset + 2 + u32(i * 12)
 
-		tag, tagSuccess := read_u16_le(data, offset)
-		if !tagSuccess do return
+		if _, err := os.seek(fileHandle, i64(offset), os.SEEK_SET); err != nil do return
+		tagAndTypeAndValueOffsetData := make([]u8, 12)
+		defer delete(tagAndTypeAndValueOffsetData)
+		if _, err := os.read_full(fileHandle, tagAndTypeAndValueOffsetData); err != nil do return
 
-		type, typeSuccess := read_u16_le(data, offset + 2)
-		if !typeSuccess do return
-
-		valueOffset, valueOffsetSuccess := read_u32_le(data, offset + 8)
-		if !valueOffsetSuccess do return
+		tag := read_u16_le(&tagAndTypeAndValueOffsetData, 0)
+		type := read_u16_le(&tagAndTypeAndValueOffsetData, 2)
+		valueOffset := read_u32_le(&tagAndTypeAndValueOffsetData, 8)
 
 		valueOffsetIsValue := type != 5
 
@@ -74,7 +74,12 @@ get_jpeg_image_preview_offsets_from_arw_data :: proc(
 				previewImageStart = valueOffset
 			} else if tag == 0x0202 {
 				previewImageLength = valueOffset
-				return data[previewImageStart:previewImageStart + previewImageLength], .None
+
+				if _, err := os.seek(fileHandle, i64(previewImageStart), os.SEEK_SET); err != nil do return
+				imageData := make([]u8, previewImageLength)
+				if _, err := os.read_full(fileHandle, imageData); err != nil do return
+
+				return imageData, .None
 			}
 		} else {
 			if valueOffset % 2 != 0 {

@@ -116,7 +116,7 @@ run :: proc() -> (exitCode: int) {
 	thread.create_and_start_with_poly_data(
 		threadData,
 		proc(threadData: ImageLoadThreadData) {
-			image, logText, err := load_jpeg_image_preview_from_filename(threadData.filename)
+			image, logText, err := load_image_preview_from_filename(threadData.filename)
 			defer delete(logText)
 
 			if err == .None {
@@ -135,7 +135,7 @@ run :: proc() -> (exitCode: int) {
 				case .TooSmallData:
 					fmt.println("Too small file")
 				case .MissingHeader:
-					fmt.println("Missing header, not a little-endian TIFF file")
+					fmt.println("Missing header")
 				case .InvalidIFDOffset:
 					fmt.println("Found an IFD offset not beginning on a word boundary, or zero")
 				case .InvalidValueOffset:
