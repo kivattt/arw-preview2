@@ -38,7 +38,10 @@ get_jpeg_image_preview_from_cr3_file :: proc(
 	defer delete(sizeAndTypeData)
 
 	offset: i64 = 0
-	os.seek(fileHandle, offset, os.SEEK_SET)
+	if _, seekErr := os.seek(fileHandle, offset, os.SEEK_SET); seekErr != nil {
+		return nil, .FailedToReadFile
+	}
+
 	for {
 		if _, err := os.read_full(fileHandle, sizeAndTypeData); err != nil do return
 
@@ -77,7 +80,10 @@ get_jpeg_image_preview_from_cr3_file :: proc(
 		if offset >= fileSize {
 			break
 		}
-		os.seek(fileHandle, offset, os.SEEK_SET)
+
+		if _, seekErr := os.seek(fileHandle, offset, os.SEEK_SET); seekErr != nil {
+			return nil, .FailedToReadFile
+		}
 	}
 
 	return nil, .NoPreviewImage

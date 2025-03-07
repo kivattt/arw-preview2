@@ -40,7 +40,9 @@ get_jpeg_image_preview_from_filename :: proc(filename: string) -> (previewImage:
 		return nil, .FailedToReadFile
 	}
 
-	os.seek(fileHandle, 0, os.SEEK_SET)
+	if _, seekErr := os.seek(fileHandle, 0, os.SEEK_SET); seekErr != nil {
+		return nil, .FailedToReadFile
+	}
 
 	if mem.compare(header, {'I', 'I', 0x2a, 0x00}) == 0 {
 		return get_jpeg_image_preview_from_arw_file(fileHandle)
