@@ -82,3 +82,17 @@ load_image_preview_from_filename :: proc(filename: string) -> (image: ^rl.Image,
 	strings.builder_destroy(&logBuilder)
 	return image, logText, .None
 }
+
+// Remember to delete the returned data when success = true
+read_data :: proc(fileHandle: os.Handle, offset: i64, numBytes: u32) -> (data: []u8, success: bool) {
+	if _, err := os.seek(fileHandle, offset, os.SEEK_SET); err != nil do return
+
+	data = make([]u8, numBytes)
+	if _, err := os.read_full(fileHandle, data); err != nil {
+		delete(data)
+		data = nil
+		return
+	}
+
+	return data, true
+}

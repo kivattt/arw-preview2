@@ -29,7 +29,6 @@ get_jpeg_image_preview_from_cr3_file :: proc(
 	header := []u8{0,0,0,0}
 	if _, err := os.read_full(fileHandle, header); err != nil do return
 
-
 	// FIXME: Sketchy shit cause CR3 doesn't have a real ass header
 	if mem.compare(header, {0, 0, 0, 24}) != 0 {
 		return nil, .MissingHeader
