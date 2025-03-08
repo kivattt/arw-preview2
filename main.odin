@@ -175,9 +175,7 @@ run :: proc() -> (exitCode: int) {
 
 	camera: rl.Camera2D
 	camera.zoom = 1.0
-	fpsTextStringBuilder := strings.builder_make()
 	fpsTextEnabled := false
-	defer strings.builder_destroy(&fpsTextStringBuilder)
 
 	hasResized := false
 
@@ -341,18 +339,6 @@ run :: proc() -> (exitCode: int) {
 		}
 
 		if fpsTextEnabled {
-			buf: [16]byte
-			fpsText := strconv.itoa(buf[:], int(rl.GetFPS()))
-			strings.write_string(&fpsTextStringBuilder, fpsText)
-			strings.write_string(&fpsTextStringBuilder, " fps")
-			fpsTextCString, err := strings.to_cstring(&fpsTextStringBuilder)
-			if err != nil {
-				fmt.println(err)
-				break
-			}
-
-			strings.builder_reset(&fpsTextStringBuilder)
-
 			fps := rl.GetFPS()
 
 			// Dropshadow
