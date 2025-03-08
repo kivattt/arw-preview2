@@ -1,4 +1,4 @@
-package main
+package gui
 
 import rl "vendor:raylib"
 import rlgl "vendor:raylib/rlgl"

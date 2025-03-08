@@ -1,4 +1,4 @@
-package main
+package load_image
 
 import "core:fmt"
 import "base:runtime"
