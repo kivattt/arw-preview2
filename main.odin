@@ -20,6 +20,9 @@ FONT_SIZE :: 24
 MOVEMENT_SPEED :: 50
 ZOOM_SPEED :: 0.25
 KEY_REPEAT_MILLIS :: 50
+FRAME_TIME_DURATION_MILLIS :: 800
+TEXT_DROPSHADOW_OFFSET :: 1
+TEXT_DROPSHADOW_ALPHA :: 100
 
 usage :: proc(programName: string) {
 	fmt.println("Usage:", programName, "[OPTIONS] [.ARW file]")
@@ -181,6 +184,19 @@ run :: proc() -> (exitCode: int) {
 	keyPressRepeatTime := time.now()
 	start := time.now()
 
+	frameTimeTimer := time.now()
+
+	frameTimeMin: f64 = max(f64)
+	frameTimeMax: f64 = 0
+	frameTimeAvg: f64 = 0
+
+	frameTimeMinText: cstring
+	frameTimeMaxText: cstring
+	frameTimeAvgText: cstring
+
+	framesElapsed := 0
+	lastNFramesElapsed := 0
+
 	for !rl.WindowShouldClose() {
 		shouldQuit := false
 
@@ -303,6 +319,27 @@ run :: proc() -> (exitCode: int) {
 		}
 		rl.EndMode2D()
 
+		framesElapsed += 1
+		frameTimeMillis := f64(rl.GetFrameTime()) * 1000
+		frameTimeMin = frameTimeMillis < frameTimeMin ? frameTimeMillis : frameTimeMin
+		frameTimeMax = frameTimeMillis > frameTimeMax ? frameTimeMillis : frameTimeMax
+		frameTimeAvg += frameTimeMillis / f64(lastNFramesElapsed)
+
+		if time.since(frameTimeTimer) > FRAME_TIME_DURATION_MILLIS * time.Millisecond {
+			frameTimeTimer = time.now()
+
+			frameTimeMinText = fmt.ctprintf("min: %.3fms", frameTimeMin)
+			frameTimeMaxText = fmt.ctprintf("max: %.3fms", frameTimeMax)
+			frameTimeAvgText = fmt.ctprintf("avg: %.3fms", frameTimeAvg)
+
+			frameTimeMin = max(f64)
+			frameTimeMax = 0
+			frameTimeAvg = 0
+
+			lastNFramesElapsed = framesElapsed
+			framesElapsed = 0
+		}
+
 		if fpsTextEnabled {
 			buf: [16]byte
 			fpsText := strconv.itoa(buf[:], int(rl.GetFPS()))
@@ -314,15 +351,20 @@ run :: proc() -> (exitCode: int) {
 				break
 			}
 
-			rl.DrawTextEx(
-				theFont,
-				fpsTextCString,
-				{5, 5},
-				FONT_SIZE,
-				0,
-				{0, 255, 0, 255},
-			)
 			strings.builder_reset(&fpsTextStringBuilder)
+
+			fps := rl.GetFPS()
+
+			// Dropshadow
+			rl.DrawTextEx(theFont, fmt.ctprintf("%v fps", fps), {5 + TEXT_DROPSHADOW_OFFSET, 5 + TEXT_DROPSHADOW_OFFSET,}, FONT_SIZE, 0, {0, 0, 0, TEXT_DROPSHADOW_ALPHA})
+			rl.DrawTextEx(theFont, frameTimeMinText, {f32(rl.GetScreenWidth()) - 530 + TEXT_DROPSHADOW_OFFSET, 5 + TEXT_DROPSHADOW_OFFSET}, FONT_SIZE, 0, {0,0,0,TEXT_DROPSHADOW_ALPHA})
+			rl.DrawTextEx(theFont, frameTimeMaxText, {f32(rl.GetScreenWidth()) - 340 + TEXT_DROPSHADOW_OFFSET, 5 + TEXT_DROPSHADOW_OFFSET}, FONT_SIZE, 0, {0,0,0,TEXT_DROPSHADOW_ALPHA})
+			rl.DrawTextEx(theFont, frameTimeAvgText, {f32(rl.GetScreenWidth()) - 150 + TEXT_DROPSHADOW_OFFSET, 5 + TEXT_DROPSHADOW_OFFSET}, FONT_SIZE, 0, {0,0,0,TEXT_DROPSHADOW_ALPHA})
+
+			rl.DrawTextEx(theFont, fmt.ctprintf("%v fps", fps), {5, 5}, FONT_SIZE, 0, {200, 200, 200, 255})
+			rl.DrawTextEx(theFont, frameTimeMinText, {f32(rl.GetScreenWidth()) - 530, 5}, FONT_SIZE, 0, {66, 245, 72, 255})
+			rl.DrawTextEx(theFont, frameTimeMaxText, {f32(rl.GetScreenWidth()) - 340, 5}, FONT_SIZE, 0, {245, 93, 66, 255})
+			rl.DrawTextEx(theFont, frameTimeAvgText, {f32(rl.GetScreenWidth()) - 150, 5}, FONT_SIZE, 0, {66, 173, 245, 255})
 		}
 
 		rl.EndDrawing()
