@@ -8,6 +8,7 @@ import "core:sync"
 import "core:thread"
 import rl "vendor:raylib"
 import "load_image"
+import "core:path/filepath"
 
 WIDTH :: 1280
 HEIGHT :: 720
@@ -40,6 +41,8 @@ Gui :: struct {
 	hasResized: bool,
 	startTime: time.Time,
 	keyPressRepeatTime: time.Time,
+
+	imageBuf: load_image.ImageBuf,
 }
 
 @(private)
@@ -63,8 +66,9 @@ init_gui :: proc(gui: ^Gui, fontData: []u8) {
 }
 
 ImageLoadThreadData :: struct {
-	imagePointer: ^^rl.Image,
-	imagePointerMutex: ^sync.Mutex,
+	imageBuf: ^load_image.ImageBuf,
+	/*imagePointer: ^^rl.Image,
+	imagePointerMutex: ^sync.Mutex,*/
 	imageLoadErrorShouldExit: ^bool,
 	hasVerboseFlag: bool,
 	filename: string,
@@ -141,6 +145,12 @@ handle_inputs :: proc(gui: ^Gui) -> (exit: bool) {
 			} else if rl.IsKeyDown(.DOWN) || rl.IsKeyDown(.J) {
 				didZoom = true
 				gui.camera.zoom *= 1.0 / (1 + ZOOM_SPEED)
+			}
+
+			if rl.IsKeyPressed(.LEFT) {
+				load_image.trigger(&gui.imageBuf, false)
+			} else if rl.IsKeyPressed(.RIGHT) {
+				load_image.trigger(&gui.imageBuf, true)
 			}
 		}
 
@@ -239,19 +249,24 @@ run :: proc(gui: ^Gui, fontData: []u8, args: Args) -> (exitCode: int) {
 		rl.SetTraceLogLevel(.ERROR)
 	}
 
-	imagePointer: ^rl.Image
-	imagePointerMutex: sync.Mutex
+	/*imagePointer: ^rl.Image
+	imagePointerMutex: sync.Mutex*/
 	imageLoadErrorShouldExit := false
+	load_image.init_imagebuf(&gui.imageBuf, filepath.dir(args.filename))
+	defer load_image.delete_imagebuf(&gui.imageBuf)
 
-	defer {
+	/*defer {
 		sync.lock(&imagePointerMutex)
+		t := time.now()
 		free(imagePointer)
+		fmt.println("freeing imagepointer took:", time.since(t))
 		sync.unlock(&imagePointerMutex)
-	}
+	}*/
 
 	threadData := ImageLoadThreadData{
-		imagePointer = &imagePointer,
-		imagePointerMutex = &imagePointerMutex,
+		//imagePointer = &imagePointer,
+		//imagePointerMutex = &imagePointerMutex,
+		imageBuf = &gui.imageBuf,
 		imageLoadErrorShouldExit = &imageLoadErrorShouldExit,
 		hasVerboseFlag = args.verbose,
 		filename = args.filename,
@@ -260,17 +275,19 @@ run :: proc(gui: ^Gui, fontData: []u8, args: Args) -> (exitCode: int) {
 	thread.create_and_start_with_poly_data(
 		threadData,
 		proc(threadData: ImageLoadThreadData) {
-			image, logText, err := load_image.load_image_preview_from_filename(threadData.filename)
-			defer delete(logText)
+			logText, err := load_image.load_single_image(threadData.imageBuf, threadData.filename, 0)
+
+			//image, logText, err := load_image.load_image_preview_from_filename(threadData.filename)
+			//defer delete(logText)
 
 			if err == .None {
 				if threadData.hasVerboseFlag {
 					fmt.print(logText)
 				}
 
-				sync.lock(threadData.imagePointerMutex)
+				/*sync.lock(threadData.imagePointerMutex)
 				threadData.imagePointer^ = image
-				sync.unlock(threadData.imagePointerMutex)
+				sync.unlock(threadData.imagePointerMutex)*/
 			} else {
 				// FIXME: Hand the error string over to the main thread for printing
 				#partial switch err {
@@ -313,17 +330,20 @@ run :: proc(gui: ^Gui, fontData: []u8, args: Args) -> (exitCode: int) {
 			break
 		}
 
-		sync.lock(&imagePointerMutex)
+		sync.lock(gui.imageBuf.mutex)
+		imagePointer := load_image.get_currently_selected_image(&gui.imageBuf)
 		if imagePointer != nil {
 			gui.texture = rl.LoadTextureFromImage(imagePointer^)
 			rl.UnloadImage(imagePointer^)
-			imagePointer = nil
+
+			gui.imageBuf.imagePointers[0] = nil // yolo
+			//imagePointer = nil
 			fit_camera_to_image(&gui.camera, f32(rl.GetScreenWidth()), f32(rl.GetScreenHeight()), f32(gui.texture.width), f32(gui.texture.height))
 			if args.closeOnFirstFrame {
 				shouldQuit = true
 			}
 		}
-		sync.unlock(&imagePointerMutex)
+		sync.unlock(gui.imageBuf.mutex)
 
 		shouldQuit |= handle_inputs(gui)
 		if shouldQuit {
