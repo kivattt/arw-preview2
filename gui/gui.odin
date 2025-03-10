@@ -146,12 +146,6 @@ handle_inputs :: proc(gui: ^Gui) -> (exit: bool) {
 				didZoom = true
 				gui.camera.zoom *= 1.0 / (1 + ZOOM_SPEED)
 			}
-
-			if rl.IsKeyPressed(.LEFT) {
-				load_image.trigger(&gui.imageBuf, false)
-			} else if rl.IsKeyPressed(.RIGHT) {
-				load_image.trigger(&gui.imageBuf, true)
-			}
 		}
 
 		movementVector := [2]f32 {
@@ -169,6 +163,14 @@ handle_inputs :: proc(gui: ^Gui) -> (exit: bool) {
 
 	if rl.IsKeyPressed(.LEFT_SHIFT) || rl.IsKeyPressed(.RIGHT_SHIFT) {
 		gui.fpsTextEnabled = !gui.fpsTextEnabled
+	}
+
+	if !isCtrlDown {
+		if rl.IsKeyPressed(.LEFT) {
+			load_image.prev_image(&gui.imageBuf)
+		} else if rl.IsKeyPressed(.RIGHT) {
+			load_image.next_image(&gui.imageBuf)
+		}
 	}
 
 	gui.camera.zoom = min(10_000, gui.camera.zoom)
@@ -252,8 +254,12 @@ run :: proc(gui: ^Gui, fontData: []u8, args: Args) -> (exitCode: int) {
 	/*imagePointer: ^rl.Image
 	imagePointerMutex: sync.Mutex*/
 	imageLoadErrorShouldExit := false
-	load_image.init_imagebuf(&gui.imageBuf, filepath.dir(args.filename))
+	load_image.init_imagebuf(&gui.imageBuf, args.filename)
 	defer load_image.delete_imagebuf(&gui.imageBuf)
+
+	load_image.load_single_image(&gui.imageBuf, "/home/kivas/main/projects/arw-preview2/IMAGES/02.ARW", 1)
+	load_image.load_single_image(&gui.imageBuf, "/home/kivas/main/projects/arw-preview2/IMAGES/03.ARW", 2)
+	load_image.load_single_image(&gui.imageBuf, "/home/kivas/main/projects/arw-preview2/IMAGES/04.ARW", 3)
 
 	/*defer {
 		sync.lock(&imagePointerMutex)
@@ -322,8 +328,10 @@ run :: proc(gui: ^Gui, fontData: []u8, args: Args) -> (exitCode: int) {
 
 	init_gui(gui, fontData)
 
+	lastImagePointer: ^rl.Image
+
 	for !rl.WindowShouldClose() {
-		shouldQuit := false
+		shouldQuitOnFirstFrame := false
 
 		if sync.atomic_load(threadData.imageLoadErrorShouldExit) {
 			exitCode = 1
@@ -332,21 +340,24 @@ run :: proc(gui: ^Gui, fontData: []u8, args: Args) -> (exitCode: int) {
 
 		sync.lock(gui.imageBuf.mutex)
 		imagePointer := load_image.get_currently_selected_image(&gui.imageBuf)
-		if imagePointer != nil {
+		if imagePointer != nil && imagePointer != lastImagePointer {
+			rl.UnloadTexture(gui.texture)
 			gui.texture = rl.LoadTextureFromImage(imagePointer^)
-			rl.UnloadImage(imagePointer^)
 
-			gui.imageBuf.imagePointers[0] = nil // yolo
-			//imagePointer = nil
 			fit_camera_to_image(&gui.camera, f32(rl.GetScreenWidth()), f32(rl.GetScreenHeight()), f32(gui.texture.width), f32(gui.texture.height))
 			if args.closeOnFirstFrame {
-				shouldQuit = true
+				shouldQuitOnFirstFrame = true
 			}
+
+			lastImagePointer = imagePointer
 		}
+
+		//print_imagebuf(&gui.imageBuf)
+		//fmt.println("index:", gui.imageBuf.imagePointersIndex)
+
 		sync.unlock(gui.imageBuf.mutex)
 
-		shouldQuit |= handle_inputs(gui)
-		if shouldQuit {
+		if handle_inputs(gui) {
 			break
 		}
 
@@ -354,8 +365,24 @@ run :: proc(gui: ^Gui, fontData: []u8, args: Args) -> (exitCode: int) {
 		draw(gui)
 		rl.EndDrawing()
 
+		if shouldQuitOnFirstFrame {
+			break
+		}
+
 		//fmt.println(track.current_memory_allocated)
 	}
 
 	return exitCode
+}
+
+print_imagebuf :: proc(imageBuf: ^load_image.ImageBuf) {
+	for e in imageBuf.imagePointers {
+		if e == nil {
+			fmt.print("nil")
+		} else {
+			fmt.print("###")
+		}
+		fmt.print(", ")
+	}
+	fmt.println()
 }
