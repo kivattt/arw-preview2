@@ -192,6 +192,9 @@ try_load_images :: proc(imageBuf: ^ImageBuf) {
 	}
 
 	imageIndex := image_index_to_file_index(imageBuf, imageBuf.imagePointersIndex)
+	if imageIndex == -1 {
+		return
+	}
 	fmt.println("imageIndex:", imageIndex)
 	fmt.println("len(files):", len(imageBuf.files))
 

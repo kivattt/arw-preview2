@@ -352,7 +352,7 @@ run :: proc(gui: ^Gui, fontData: []u8, args: Args) -> (exitCode: int) {
 			lastImagePointer = imagePointer
 		}
 
-		//print_imagebuf(&gui.imageBuf)
+		print_imagebuf(&gui.imageBuf)
 		//fmt.println("index:", gui.imageBuf.imagePointersIndex)
 
 		sync.unlock(gui.imageBuf.mutex)
