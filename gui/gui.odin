@@ -257,7 +257,7 @@ run :: proc(gui: ^Gui, fontData: []u8, args: Args) -> (exitCode: int) {
 		filename = args.filename,
 	}
 
-	thread.create_and_start_with_poly_data(
+	t := thread.create_and_start_with_poly_data(
 		threadData,
 		proc(threadData: ImageLoadThreadData) {
 			image, logText, err := load_image.load_image_preview_from_filename(threadData.filename)
@@ -293,7 +293,6 @@ run :: proc(gui: ^Gui, fontData: []u8, args: Args) -> (exitCode: int) {
 			}
 		},
 		init_context=context, // So we can track its memory usage
-		self_cleanup=true,
 	)
 
 	// .VSYNC_HINT slows down my computer when focusing other windows for some reason
@@ -336,6 +335,8 @@ run :: proc(gui: ^Gui, fontData: []u8, args: Args) -> (exitCode: int) {
 
 		//fmt.println(track.current_memory_allocated)
 	}
+
+	thread.destroy(t)
 
 	return exitCode
 }
