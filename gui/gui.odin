@@ -234,6 +234,17 @@ run :: proc(gui: ^Gui, fontData: []u8, args: Args) -> (exitCode: int) {
 	mem.tracking_allocator_init(&track, context.allocator)
 	context.allocator = mem.tracking_allocator(&track)
 
+	when ODIN_DEBUG {
+		defer {
+			if len(track.allocation_map) > 0 {
+				fmt.eprintf("=== %v allocations not freed: ===\n", len(track.allocation_map))
+				for _, entry in track.allocation_map {
+					fmt.eprintf("- %v bytes @ %v\n", entry.size, entry.location)
+				}
+			}
+			mem.tracking_allocator_destroy(&track)
+		}
+	}
 
 	if !args.verbose {
 		rl.SetTraceLogLevel(.ERROR)
@@ -316,6 +327,7 @@ run :: proc(gui: ^Gui, fontData: []u8, args: Args) -> (exitCode: int) {
 		if imagePointer != nil {
 			gui.texture = rl.LoadTextureFromImage(imagePointer^)
 			rl.UnloadImage(imagePointer^)
+			free(imagePointer)
 			imagePointer = nil
 			fit_camera_to_image(&gui.camera, f32(rl.GetScreenWidth()), f32(rl.GetScreenHeight()), f32(gui.texture.width), f32(gui.texture.height))
 			if args.closeOnFirstFrame {

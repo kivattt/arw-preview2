@@ -51,7 +51,7 @@ get_jpeg_image_preview_from_filename :: proc(filename: string) -> (previewImage:
 	}
 }
 
-// Remember to delete the logString return value once you're done with it!
+// Remember to delete the logString and free the image return value once you're done with it!
 load_image_preview_from_filename :: proc(filename: string) -> (image: ^rl.Image, logString: string, err: ImageLoadingError) {
 	// I don't think we use the default temp allocator in this function, but the docs say to do this.
 	defer runtime.default_temp_allocator_destroy(cast(^runtime.Default_Temp_Allocator)context.temp_allocator.data)
