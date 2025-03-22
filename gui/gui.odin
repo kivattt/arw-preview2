@@ -6,6 +6,8 @@ import "core:mem"
 import "core:time"
 import "core:sync"
 import "core:thread"
+import "core:strings"
+import "core:path/filepath"
 import rl "vendor:raylib"
 import "load_image"
 
@@ -309,7 +311,12 @@ run :: proc(gui: ^Gui, fontData: []u8, args: Args) -> (exitCode: int) {
 	// .VSYNC_HINT slows down my computer when focusing other windows for some reason
 	// So I just manually SetTargetFPS() to the monitor refresh rate
 	rl.SetConfigFlags({.WINDOW_RESIZABLE})
-	rl.InitWindow(WIDTH, HEIGHT, "arw-preview2")
+	title, err := strings.clone_to_cstring(filepath.base(args.filename))
+	if err != nil {
+		os.exit(1)
+	}
+
+	rl.InitWindow(WIDTH, HEIGHT, title)
 	defer rl.CloseWindow()
 	rl.SetTargetFPS(rl.GetMonitorRefreshRate(rl.GetCurrentMonitor()))
 
