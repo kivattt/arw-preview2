@@ -6,6 +6,8 @@ Quickly preview raw camera image files
 
 Raw image files created by other camera models have not been tested.
 
+<img src="screenshot.png" alt="arw-preview2 showing a JPEG preview of a .ARW file" width="75%">
+
 ## Controls
 Mouse click to move, double-click to fit image\
 `Escape` or `Caps Lock` or `q` to exit\
@@ -15,8 +17,6 @@ Mouse click to move, double-click to fit image\
 `Double click` or `Space` or `Enter` to fit image\
 `HJKL` keys double as arrow keys, for the VIM enjoyers\
 `Shift` to show framerate
-
-<img src="screenshot.png" alt="arw-preview2 showing a JPEG preview of a .ARW file" width="75%">
 
 ## Building
 Install [Odin](https://odin-lang.org/) version dev-2025-03
