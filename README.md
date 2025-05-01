@@ -19,7 +19,7 @@ Mouse click to move, double-click to fit image\
 `Shift` to show framerate
 
 ## Building
-Install [Odin](https://odin-lang.org/) version dev-2025-03
+Install [Odin](https://odin-lang.org/) version dev-2025-04 or dev-2025-03
 ```
 odin build . -o:speed
 ```
