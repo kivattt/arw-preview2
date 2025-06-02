@@ -19,7 +19,16 @@ Mouse click to move, double-click to fit image\
 `Shift` to show framerate
 
 ## Building
-Install [Odin](https://odin-lang.org/) version dev-2025-04 or dev-2025-03
+Install the latest version of [Odin](https://odin-lang.org/).\
+If you get any compiler errors, try the latest supported version below:
+
+Compiler versions that work to compile this project:
+```
+dev-2025-06
+dev-2025-04
+dev-2025-03
+```
+
 ```
 odin build . -o:speed
 ```
