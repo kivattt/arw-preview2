@@ -20,7 +20,7 @@ Mouse click to move, double-click to fit image\
 
 ## Building
 Install the latest version of [Odin](https://odin-lang.org/).\
-If you get any compiler errors, try the latest supported version below:
+If you get any compiler errors, try the latest supported version below instead:
 
 Compiler versions that work to compile this project:
 ```
