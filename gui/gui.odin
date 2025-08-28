@@ -1,5 +1,6 @@
 package gui
 
+import "core:math/linalg"
 import "core:os"
 import "core:fmt"
 import "core:mem"
@@ -22,6 +23,7 @@ TEXT_DROPSHADOW_OFFSET :: 1
 TEXT_DROPSHADOW_ALPHA :: 100
 
 Gui :: struct {
+	cameraTargetVector: [2]f32, // x, y
 	camera: rl.Camera2D,
 	texture: rl.Texture,
 	frameTimeTimer: time.Time,
@@ -73,6 +75,17 @@ ImageLoadThreadData :: struct {
 }
 
 @(private)
+move_interpolated :: proc(gui: ^Gui, pos: [2]f32) {
+	gui.cameraTargetVector = pos
+}
+
+@(private)
+move_not_interpolated :: proc(gui: ^Gui, pos: [2]f32) {
+	gui.cameraTargetVector = pos
+	gui.camera.target = pos
+}
+
+@(private)
 handle_inputs :: proc(gui: ^Gui) -> (exit: bool) {
 	// raylib doesn't respect my keybinds, so force it to also close on caps lock
 	if rl.IsKeyDown(.Q) || rl.IsKeyDown(.CAPS_LOCK) {
@@ -85,7 +98,8 @@ handle_inputs :: proc(gui: ^Gui) -> (exit: bool) {
 		rl.SetMouseCursor(.RESIZE_ALL)
 		delta := rl.GetMouseDelta()
 		delta = delta * (-1.0 / gui.camera.zoom)
-		gui.camera.target += delta
+
+		move_not_interpolated(gui, gui.cameraTargetVector + delta)
 	} else {
 		rl.SetMouseCursor(.DEFAULT)
 	}
@@ -94,7 +108,9 @@ handle_inputs :: proc(gui: ^Gui) -> (exit: bool) {
 	if wheel != 0 {
 		mouseWorldPos := rl.GetScreenToWorld2D(rl.GetMousePosition(), gui.camera)
 		gui.camera.offset = rl.GetMousePosition()
-		gui.camera.target = mouseWorldPos
+
+		move_not_interpolated(gui, mouseWorldPos)
+
 		scaleFactor := 1.0 + (ZOOM_SPEED * abs(wheel))
 		if wheel < 0 do scaleFactor = 1.0 / scaleFactor
 		gui.camera.zoom *= scaleFactor
@@ -115,7 +131,7 @@ handle_inputs :: proc(gui: ^Gui) -> (exit: bool) {
 	   rl.IsGestureDetected(.DOUBLETAP) ||
 	   rl.IsKeyPressed(.ENTER) ||
 	   rl.IsKeyPressed(.SPACE) {
-		fit_camera_to_image(&gui.camera, f32(rl.GetScreenWidth()), f32(rl.GetScreenHeight()), f32(gui.texture.width), f32(gui.texture.height))
+		fit_camera_to_image(gui, f32(rl.GetScreenWidth()), f32(rl.GetScreenHeight()), f32(gui.texture.width), f32(gui.texture.height))
 		firstResize = false
 	}
 
@@ -150,7 +166,8 @@ handle_inputs :: proc(gui: ^Gui) -> (exit: bool) {
 			f32(int(right)) - f32(int(left)),
 			f32(int(down)) - f32(int(up)),
 		}
-		gui.camera.target += movementVector * (MOVEMENT_SPEED / gui.camera.zoom)
+
+		move_interpolated(gui, gui.cameraTargetVector + movementVector * (MOVEMENT_SPEED / gui.camera.zoom))
 	}
 
 	if !didZoom {
@@ -170,14 +187,20 @@ handle_inputs :: proc(gui: ^Gui) -> (exit: bool) {
 }
 
 @(private)
-fit_camera_to_image :: proc(camera: ^rl.Camera2D, screenWidth, screenHeight, textureWidth, textureHeight: f32) {
-	camera.zoom = min(screenWidth / textureWidth, screenHeight / textureHeight)
-	camera.offset = {screenWidth / 2, screenHeight / 2}
-	camera.target = {textureWidth / 2, textureHeight / 2}
+fit_camera_to_image :: proc(gui: ^Gui, screenWidth, screenHeight, textureWidth, textureHeight: f32) {
+	gui.camera.zoom = min(screenWidth / textureWidth, screenHeight / textureHeight)
+	gui.camera.offset = {screenWidth / 2, screenHeight / 2}
+	move_not_interpolated(gui, {textureWidth / 2, textureHeight / 2})
 }
 
 @(private)
 draw :: proc(gui: ^Gui) {
+	// Interpolate camera position
+	deltaTime := rl.GetFrameTime()
+	lerpAmount := linalg.clamp(20 * deltaTime, 0.1, 1.0)
+	gui.camera.target[0] = linalg.lerp(gui.camera.target[0], gui.cameraTargetVector[0], lerpAmount)
+	gui.camera.target[1] = linalg.lerp(gui.camera.target[1], gui.cameraTargetVector[1], lerpAmount)
+
 	rl.BeginMode2D(gui.camera)
 	rl.ClearBackground({53, 53, 53, 255})
 	rl.DrawTexture(gui.texture, 0, 0, rl.WHITE)
@@ -188,7 +211,7 @@ draw :: proc(gui: ^Gui) {
 	rl.EndMode2D()
 
 	gui.framesElapsed += 1
-	frameTimeMillis := f64(rl.GetFrameTime()) * 1000
+	frameTimeMillis := f64(deltaTime) * 1000
 	gui.frameTimeMin = frameTimeMillis < gui.frameTimeMin ? frameTimeMillis : gui.frameTimeMin
 	gui.frameTimeMax = frameTimeMillis > gui.frameTimeMax ? frameTimeMillis : gui.frameTimeMax
 	gui.frameTimeAvg += frameTimeMillis / f64(gui.lastNFramesElapsed)
@@ -336,7 +359,7 @@ run :: proc(gui: ^Gui, fontData: []u8, args: Args) -> (exitCode: int) {
 			rl.UnloadImage(imagePointer^)
 			free(imagePointer)
 			imagePointer = nil
-			fit_camera_to_image(&gui.camera, f32(rl.GetScreenWidth()), f32(rl.GetScreenHeight()), f32(gui.texture.width), f32(gui.texture.height))
+			fit_camera_to_image(gui, f32(rl.GetScreenWidth()), f32(rl.GetScreenHeight()), f32(gui.texture.width), f32(gui.texture.height))
 			if args.closeOnFirstFrame {
 				shouldQuit = true
 			}
