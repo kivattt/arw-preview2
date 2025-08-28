@@ -45,7 +45,15 @@ get_jpeg_image_preview_from_filename :: proc(filename: string) -> (previewImage:
 	}
 
 	if mem.compare(header, {'I', 'I', 0x2a, 0x00}) == 0 {
-		return get_jpeg_image_preview_from_arw_file(fileHandle)
+		// TIFF tags for Sony .ARW format
+		img, err := get_jpeg_image_preview_from_file_tiff_tags(fileHandle, 0x0201, 0x0202)
+
+		if err != nil {
+			// TIFF tags for Canon .CR2 format
+			return get_jpeg_image_preview_from_file_tiff_tags(fileHandle, 0x0111, 0x0117)
+		} else {
+			return img, err
+		}
 	} else {
 		return get_jpeg_image_preview_from_cr3_file(fileHandle)
 	}

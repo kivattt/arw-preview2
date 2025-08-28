@@ -3,6 +3,7 @@ Quickly preview raw camera image files
 ## Supported image files
 - .ARW by Sony a6000
 - .CR3 by Canon EOS R50
+- .CR2 by Canon EOS 6D
 
 Raw image files created by other camera models have not been tested.
 
@@ -35,9 +36,10 @@ odin build . -o:speed
 
 ## Running
 ```
+# Try any of these!
 ./arw-preview2 example.ARW
-# or
 ./arw-preview2 example.CR3
+./arw-preview2 example.cr2
 ```
 
 ## Todo
