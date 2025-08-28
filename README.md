@@ -23,8 +23,9 @@ Mouse click to move, double-click to fit image\
 Install the latest version of [Odin](https://odin-lang.org/).\
 If you get any compiler errors, try the latest supported version below instead:
 
-Compiler versions that work to compile this project:
+Compiler versions that I know work with this project:
 ```
+dev-2025-08
 dev-2025-06
 dev-2025-04
 dev-2025-03
